@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Dnsmasq | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Dnsmasq is a libre DNS and DHCP system that allows anyone to run a DNS server to resolve domains. Normally to block domains and ads, users on most operating systems can edit their /etc/hosts file or use one of the many existing ad-blocking hosts collections available online. However, if you&rsquo;re trying to block ads over your entire home network and do not have access to your router&rsquo;s hosts file, then setting up your own DNS server can be very advantageous.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/dnsmasq.svg" class=titleicon>Dnsmasq</h1></header>
+<article>
+<p><a href="https://dnsmasq.org">Dnsmasq</a> is a libre DNS and DHCP system that allows anyone to run a DNS server to resolve domains.
+Normally to block domains and ads, users on most operating systems can edit their <strong><code>/etc/hosts</code> file</strong> or use one of the many existing ad-blocking hosts collections available online.
+However, if you&rsquo;re trying to block ads <strong>over your entire home network</strong> and do not have access to your router&rsquo;s hosts file,
+then setting up your own DNS server can be very advantageous.</p>
+<p>This also comes with the benefit of increased flexibility regarding name resolution;
+for example, with Dnsmasq, you can employ the usage of <strong>wildcard domains</strong> to block massive ranges of ads, trackers and entire social media networks.</p>
+<h2 id="before-we-begin">Before we begin&hellip;</h2>
+<p>while Dnsmasq is very versatile software that can be used for a variety of networking and DNS applications,
+this guide assumes you only want to setup Dnsmasq to <strong>block domains from resolving</strong> (ie. ads and social media sites).
+It is possible to get <strong>custom domain resolution</strong> and <strong>internal network services</strong> running using Dnsmasq,
+but this is beyond the scope of this article.</p>
+<h2 id="installation">Installation</h2>
+<p>Dnsmasq is available in the Debian repositories:</p>
+<pre tabindex="0"><code>apt install dnsmasq
+</code></pre><h2 id="configuration">Configuration</h2>
+<h3 id="basic-configuration">Basic configuration</h3>
+<p>By default, Dnsmasq will start a DNS server listening on <code>localhost:53</code>.
+You can even test this if you have the <code>bind9</code> package installed:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>dig @localhost example.org
+</span></span></code></pre></div><p>This command should return the A DNS records for <code>example.org</code>.</p>
+<p>We can configure Dnsmasq to listen on the public internet by editing its config file, <code>/etc/dnsmasq.conf</code>.
+In this file, you&rsquo;ll find this line, commented out:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e">#interface=</span>
+</span></span></code></pre></div><p>We need to specify the <strong>interface we wish to listen on</strong> to provide the DNS service.
+In most cases (such as when using a Debian VPS) this will simply be <code>eth0</code>.
+However, please run <code>ip a</code> to determine which interface is correct for your system, if you&rsquo;re unsure.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>interface<span style="color:#f92672">=</span><mark>eth0</mark>
+</span></span></code></pre></div><p>It&rsquo;s also <strong>highly recommended</strong> to uncomment this following line,
+just to prevent Dnsmasq from forwarding requests to local names.</p>
+<pre tabindex="0"><code>domain-needed
+</code></pre><p>Now all we have to do is restart Dnsmasq&rsquo;s systemd service:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart dnsmasq
+</span></span></code></pre></div><p>And, on our <strong>local machine,</strong> we can try using the <code>bind9</code> utilities to test our DNS server:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>dig @<mark>your_servers_public_ip</mark> example.org
+</span></span></code></pre></div><p>This should return the correct A DNS records for <code>example.org</code>, like when testing using <code>localhost</code>.</p>
+<h3 id="changing-authoritative-dns-providers">Changing Authoritative DNS Providers</h3>
+<p>By default, Dnsmasq will use the DNS servers provided in <code>/etc/resolv.conf</code>.
+You can change this file directly, altering DNS resolution for your entire system:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e"># Quad9 DNS Server</span>
+</span></span><span style="display:flex;"><span>nameserver  <mark>9.9.9.9</mark>
+</span></span><span style="display:flex;"><span>nameserver  <mark>149.112.112.112</mark>
+</span></span></code></pre></div><h2 id="blocking-dns-requests">Blocking DNS Requests</h2>
+<h3 id="using-a-hostsfile">Using a Hostsfile</h3>
+<p>As mentioned previously, one of Dnsmasq&rsquo;s advantages is that it can read <code>/etc/hosts</code> and other host resolution files.
+This makes it 100% compatible with existing ad-blocking hosts files.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>0.0.0.0     www.youtube.com
+</span></span><span style="display:flex;"><span>0.0.0.0     www.reddit.com
+</span></span></code></pre></div><p>This hosts file blocks <code>www.youtube.com</code> and <code>www.reddit.com</code>.</p>
+<p>To read another hosts file, in addition to <code>/etc/hosts</code>, you can use the following in <code>/etc/dnsmasq</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>addn-hosts<span style="color:#f92672">=</span>/etc/hosts.2
+</span></span></code></pre></div><p>The only complication is that <strong>every time you update the hosts file, Dnsmasq must be restarted:</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart dnsmasq
+</span></span></code></pre></div><h3 id="using-dnsmasqs-configuration">Using Dnsmasq&rsquo;s Configuration</h3>
+<p>For more advanced forms of DNS blocking, such as <strong>domain wildcards,</strong> you can edit <code>/etc/dnsmasq.conf</code> directly:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>address<span style="color:#f92672">=</span>/<mark>netflix.com</mark>/0.0.0.0
+</span></span></code></pre></div><p>This configuration will block all requests to <code>netflix.com</code> and its subdomains. This way you <strong>don&rsquo;t need a massive hosts file</strong> containing every single possible subdomain. All you need to know is the root domain.</p>
+<p>And as usual, remember to restart the Dnsmasq systemd service every time the configuration is altered.</p>
+<pre tabindex="0"><code>systemctl restart dnsmasq
+</code></pre><h2 id="using-dnsmasq">Using Dnsmasq</h2>
+<p>If you intend to use your new DNS server on your home network,
+this is as easy as setting your primary DNS resolver in your router&rsquo;s settings to your <strong>DNS server&rsquo;s public IP address.</strong></p>
+<p>For example, on a local Linux machine, you could edit <code>/etc/resolv.conf</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>nameserver  <mark>your_servers_public_ip</mark>
+</span></span></code></pre></div><p>Generally this should be an intuitive process on most router interfaces,
+and most OS&rsquo; will let you edit the DNS in their respective network settings.</p>
+<hr>
+<p>Written by <a href="https://denshi.org">Denshi.</a>
+Donate Monero at:
+<code>48dnPpGgo8WernVJp5VhvhaX3u9e46NujdYA44u8zuMdETNC5jXiA9S7JoYMM6qRt1ZcKpt1J3RZ3JPuMyXetmbHH7Mnc9C</code></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

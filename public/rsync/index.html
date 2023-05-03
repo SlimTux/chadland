@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Rsync: Upload and Sync Files and Websites | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="rsync is a simple way to copy files and folders between your local computer and server. While you can install Nextcloud is a more normie-friendly Dropbox/Google Drive-like way to share files, people familiar with the command-line will find all they need in the simple rsync command.
+It not only makes file-transfer easy, but it allows you to build and maintain your website offline, then easily upload it to the proper directory on your server so you don&#39;t need to constantly be logged into your server to modify your site.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Rsync: Upload and Sync Files and Websites</h1></header>
+<article><img src="/pix/rsync.png" class=titleimg>
+<p>rsync is a simple way to copy files and folders between your local computer and
+server. While you can install <a href="/nextcloud">Nextcloud</a> is a more normie-friendly
+Dropbox/Google Drive-like way to share files, people familiar with the
+command-line will find all they need in the simple <code>rsync</code> command.</p>
+<p>It not only makes file-transfer easy, but it allows you to build and
+maintain your website offline, then easily upload it to the proper
+directory on your server so you don't need to constantly be logged into
+your server to modify your site.</p>
+<h2 id="installing-rsync">Installing rsync</h2>
+<p>Run the following on your server <em>and</em> on your local machine.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install rsync
+</span></span></code></pre></div><h2 id="uploading-files-with-rsync">Uploading files with rsync</h2>
+<p>From your local machine you can upload files to your server like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>rsync -rtvzP /path/to/file root@example.org:/path/on/the/server
+</span></span></code></pre></div><p>You will be prompted for the root password and then uploading will
+commence.</p>
+<p>If you omit <strong>root@</strong>, rsync will not attempt to log in as root, but
+whatever your local username is.</p>
+<h3 id="options-to-rsync">Options to rsync</h3>
+<p>In this command, we give several options to rsync. You can remove some of these
+or add to them based on your needs:</p>
+<ul>
+<li><code>-r</code> &ndash; run recurssively (include directories)</li>
+<li><code>-t</code> &ndash; transfer modification times, which allows skipping files
+that have not been modified on future uploads</li>
+<li><code>-v</code> &ndash; visual, show files uploaded</li>
+<li><code>-z</code> &ndash; compress files for upload</li>
+<li><code>-P</code> &ndash; if uploading a large file and upload breaks, pick up where
+we left off rather than reuploading the entire file</li>
+</ul>
+<p>Avoid using the commonly used <code>-a</code> option when uploading to a server. It can
+transfer your local machine's user and group permissions to your
+server, which might cause breakage.</p>
+<p>But <code>-a</code> is useful for making back-ups of important directories. It&rsquo;s an alias for many options at once (<code>-rlptgoD</code>)&mdash;read <code>man rsync</code> for the details.</p>
+<h3 id="scriptability">Scriptability</h3>
+<p>It's a good idea to build your website offline, then make an rsync
+script or bash alias like the one above to upload the edited files when
+you have made updates.</p>
+<h3 id="password-less-authentication">Password-less authentication</h3>
+<p>To avoid having to manually input your password each upload, you can set
+up <a href="/sshkeys">SSH keys</a> to securely idenitify yourself and computer
+as a trusted.</p>
+<h3 id="picky-trailing-slashes">Picky trailing slashes</h3>
+<p>rsync is very particular about trailing slashes. This is useful, but can
+be confusing to some new users. Suppose we run the following wanting to
+mirror our offline copy of our website in the directory we use on our
+server (<code>/var/www/websitefiles/</code>):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>❌ rsync -rtvzP ~/websitefiles/ root@example.org:/var/www/websitefiles/
+</span></span></code></pre></div><p>This will <em>not actually do quite what we want</em>. It will take our local
+<code>websitefiles</code> directory and put it <em>inside</em> <code>websitefiles</code> on the
+remote machine, ending up with <code>/var/www/websitefiles/websitefiles</code>.</p>
+<p>Instead, remove the trailing slash from the remote server location:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>✅ rsync -rtvzP ~/websitefiles/ root@example.org:/var/www/websitefiles
+</span></span></code></pre></div><p><code>websitefiles/</code> has been replaced with <code>websitefiles</code>, and this will do
+what we want.</p>
+<h2 id="downloading-file-with-rsync">Downloading files with rsync</h2>
+<p>You may just as easily download files and directories from your server
+with rsync:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>rsync -rtvzP root@example.org:/path/to/file /path/to/file
+</span></span></code></pre></div><p>If you don&rsquo;t keep a local copy of your website or other things saved on a server🔒, it might be a good idea to set up a <a href="/cron">cronjob</a> or just a normal script on your local computer that takes back-ups of your website in case of server failure!</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

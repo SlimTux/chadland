@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Validate Email With DNS Records | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Email is a lot like real-life mail. You can send email to anyone, but you can also write whatever return address you&#39;d like. That is, it&#39;s pretty easy to pretend to be someone else via mail, and that was originally the case with email as well: email is just text, and you could just change your From: address to any email address you wanted! DKIM (Domain Keys Identified Mail) helps solve this issue.">
+	<meta name="keywords" content="mail">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Validate Email with DNS Records</h1></header>
+<article>
+<p>Email is a lot like real-life mail. You can send email to anyone, but
+you can also write whatever return address you'd like. That is, it's
+pretty easy to pretend to be someone else via mail, and that was
+originally the case with email as well: email is just text, and you
+could just change your <code>From:</code> address to any email address you wanted!
+DKIM (Domain Keys Identified Mail) helps solve this issue.</p>
+<p>OpenDKIM will generate a public/private cryptographic key pair for your
+server. The public key will be made available publicly in your server's
+DNS records and the private key will be used to sign every single email
+that leaves the server. This means that people receiving mail from your
+server can now be absolutely sure that it originated from your server
+because their servers can check the cryptographic signature on the email
+with the public key!</p>
+<p>OpenDKIM ensures that email originated from the server it claims it did,
+but it does not ensure that it originated from the user account it
+claims it did. This easier problem is solved by server-side
+authorization settings.</p>
+<h2 id="installation">Installation</h2>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install opendkim opendkim-tools
+</span></span></code></pre></div><h2 id="the-keys-and-files">The Keys and Files</h2>
+<p>We have to generate the DKIM keys and create some secondary files that
+will be required for our configuration.</p>
+<h3 id="generate-the-dkim-key">Generate the DKIM key</h3>
+<!--
+TODO: Make a unique directory for each domain to later allow multiple domain
+DKIM validation for servers serving more than one domain name.
+-->
+<p>Here we create directories for the OpenDKIM keys, generate them, and
+ensure they have the right file permissions.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir -p /etc/postfix/dkim
+</span></span><span style="display:flex;"><span>opendkim-genkey -D /etc/postfix/dkim/ -d example.org -s mail
+</span></span><span style="display:flex;"><span>chgrp opendkim /etc/postfix/dkim/*
+</span></span><span style="display:flex;"><span>chmod g+r /etc/postfix/dkim/*
+</span></span></code></pre></div><h3 id="create-the-key-table">Create the key table</h3>
+<p>Now we'll tell OpenDKIM where the newly generated keys are on the file
+system.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;mail._domainkey.example.org example.org:mail:/etc/postfix/dkim/mail.private&#34;</span> &gt; /etc/postfix/dkim/keytable
+</span></span></code></pre></div><h3 id="create-the-signing-table">Create the signing table</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;*@example.org mail._domainkey.example.org&#34;</span> &gt; /etc/postfix/dkim/signingtable
+</span></span></code></pre></div><h3 id="adding-trusted-hosts">Adding trusted hosts</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;127.0.0.1
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">10.1.0.0/16
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">1.2.3.4/24&#34;</span> &gt; /etc/postfix/dkim/trustedhosts
+</span></span></code></pre></div><h2 id="configuring-opendkimconf">Configuring opendkim.conf</h2>
+<p>Now we have all the raw material, so open up <code>/etc/opendkim.conf</code> and we
+can finalize our server settings. First, add these lines that will
+source the files we just created.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#ae81ff">KeyTable file:/etc/postfix/dkim/keytable</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">SigningTable refile:/etc/postfix/dkim/signingtable</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">InternalHosts refile:/etc/postfix/dkim/trustedhosts</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">Canonicalization        relaxed/simple</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">Socket                  inet:12301@localhost</span>
+</span></span></code></pre></div><p>There will already be an uncommented <code>Socket</code> directive, so delete,
+comment out or replace it with the above.</p>
+<h2 id="interfacing-with-postfix">Interfacing with Postfix</h2>
+<p>There are a couple things we must add to the Postfix SMTP server
+settings to interface it with OpenDKIM. Specifically, we have to set our
+OpenDKIM server, which will be running on port <code>12301</code>, as a milter
+(mail filter). This is easy to do with the four commands below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>postconf -e <span style="color:#e6db74">&#34;myhostname = </span><span style="color:#66d9ef">$(</span>cat /etc/mailname<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>
+</span></span><span style="display:flex;"><span>postconf -e <span style="color:#e6db74">&#34;milter_default_action = accept&#34;</span>
+</span></span><span style="display:flex;"><span>postconf -e <span style="color:#e6db74">&#34;milter_protocol = 6&#34;</span>
+</span></span><span style="display:flex;"><span>postconf -e <span style="color:#e6db74">&#34;smtpd_milters = inet:localhost:12301&#34;</span>
+</span></span><span style="display:flex;"><span>postconf -e <span style="color:#e6db74">&#34;non_smtpd_milters = inet:localhost:12301&#34;</span>
+</span></span></code></pre></div><h2 id="restart-and-reload-postfix-and-dkim">Restart and reload Postfix and DKIM</h2>
+<p>Now that we have all our settings in place:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart opendkim
+</span></span><span style="display:flex;"><span>systemctl enable opendkim
+</span></span><span style="display:flex;"><span>systemctl reload postfix
+</span></span></code></pre></div><h2 id="adding-the-dns-record">Adding the DNS record!</h2>
+<p>We are only one step away from having functioning OpenDKIM. We must add
+the DKIM public key to our server's DNS settings, so go ahead and open
+up <a href="https://www.epik.com/?affid=we2ro7sa6">your registrar's site</a> or
+wherever your site's DNS settings are.</p>
+<p>The public key is found in the file <code>/etc/postfix/dkim/mail.txt</code>, but it
+will display as multiple lines and multiple quoted strings, which is
+annoying and hard to copy-and-paste into your registrar. To make things
+easier, run the following command to format the key in the way we need
+it for the DNS TXT entry:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo -e <span style="color:#e6db74">&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">v=DKIM1; k=rsa; </span><span style="color:#66d9ef">$(</span>tr -d <span style="color:#e6db74">&#34;
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;</span> &lt;/etc/postfix/dkim/mail.txt | sed <span style="color:#e6db74">&#34;s/k=rsa.* \&#34;p=/k=rsa; p=/;s/\&#34;\s*\&#34;//;s/\&#34;\s*).*//&#34;</span> | grep -o <span style="color:#e6db74">&#34;p=.*&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;</span>
+</span></span></code></pre></div><p>Take the very long output of that command, which will start with
+<code>v=DKIM1</code> and add it as a TXT entry in your DNS settings as below. The
+host we put it for is <code>mail._domainkey</code>.</p>
+
+<figure ><a href="/pix/dkim-01.png"><img src="/pix/dkim-01.png" alt="Adding the OpenDKIM TXT entry in DNS settings"></a></figure>
+
+<p>On my registrar, Epik, this is how it is input, but on some registrars,
+it may be required to include your domain name as well as
+<code>mail._domainkey.example.org</code>.</p>
+<p>If you have your own DNS server, add a TXT entry as follows:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>mail._domainkey.example.org TXT v=DKIM1; k=rsa; p=ThatLongRandomSequenceOfLettersAndNumbersOfYours
+</span></span></code></pre></div><h2 id="testing-it-out">Testing it out!</h2>
+<p>Now we want to send an email to make sure that your emails will now be
+signed with OpenDKIM.</p>
+<h3 id="hostname">Hostname</h3>
+<p>If you've followed these instructions, all emails from the domain
+<strong>example.org</strong> will now have a DKIM signature on them. If we send mail
+via the <code>mail</code> command, however, their domain of origin will be whatever
+your server's hostname is, which you may have set to something
+different than your domain.</p>
+<p>You can permanently change your hostname by changing it in
+<code>/etc/hostname</code> and rebooting, or you can just run
+<code>hostname example.org</code> to change it temporarily for testing. Either way,
+this will allow us to run the <code>mail</code> command as in <a href="smtp.html">the SMTP
+article</a>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;Hi there.
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">This is the text.&#34;</span> | mail -s <span style="color:#e6db74">&#34;Email from the server&#34;</span> your@emailaddress.com
+</span></span></code></pre></div><h3 id="more-helpful-troubleshooting">More helpful troubleshooting.</h3>
+<p>You can also go to <a href="https://appmaildev.com/en/dkim">this site</a>, which
+will help you troubleshoot any other DKIM problems if you mistyped
+something.</p>
+<h2 id="dmarc">DMARC</h2>
+<p>DMARC (Domain-based Message Authentication Protocol) is a protocol designed
+to give email domain owners the ability to protect their domain from
+unauthorized use.</p>
+<p>Add the dmarc user:</p>
+<pre><code>useradd -m -G mail dmarc
+</code></pre>
+<p>Open up your registrar or DNS settings again, and make a new TXT record like
+we did with DKIM, except now use the output from the following command:</p>
+<pre><code>echo &quot;_dmarc.$(cat /etc/mailname)&quot;
+echo &quot;v=DMARC1; p=reject; rua=mailto:dmarc@$(cat /etc/mailname); fo=1&quot;
+</code></pre>
+<p>The first line is the Host field. The latter is the TXT value.</p>
+<h3 id="sender-policy-framework">Sender Policy Framework</h3>
+<p>Saving the easiest for last, we should add a TXT record for SPF,
+an email-authentication standard used to prevent spammers from sending messages
+that appear to come from a spoofed domain.</p>
+<pre><code>cat /etc/mailname
+echo &quot;v=spf1 mx a:mail.$(cat /etc/mailname) -all&quot;
+</code></pre>
+<p>The output of <code>cat /etc/mailname</code> is the Host field. The output of the second command is the TXT value.</p>
+<p>Again, you can check <a href="https://appmaildev.com/en/spf">that site</a>
+to make sure your DKIM, DMARC, and SPF entries are valid. That&rsquo;s it!</p>
+</article>
+<a class=next href="/mail/inbox/">Next: Setting up an E-mail Inbox</a>
+<span class=prev>Or Previous: <a href="/mail/rdns/">Informatics</a></span>
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

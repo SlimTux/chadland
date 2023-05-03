@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>PeerTube | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="PeerTube is a self-hosted and (optionally) federated video sharing platform that saves bandwith on videos the more people watch. PeerTube instances can follow each other to share videos and grow the federated network, but you can always keep your instance to yourself if you choose to.
+Note on Bandwidth Video sharing is the most bandwidth intensive thing on the internet! If you plan on just having a small personal site with a few viewers and friends, that won&#39;t be a big concern, but most VPS providers like Vultr have caps on how much bandwidth can be used within a month without being throttled.">
+	<meta name="keywords" content="service, activity-pub">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/peertube.svg" class=titleicon>PeerTube</h1></header>
+<article>
+<p>PeerTube is a self-hosted and (optionally) federated video sharing
+platform that saves bandwith on videos the more people watch. PeerTube
+instances can follow each other to share videos and grow the federated
+network, but you can always keep your instance to yourself if you choose
+to.</p>
+<h2 id="note-on-bandwidth">Note on Bandwidth</h2>
+<p>Video sharing is the most bandwidth intensive thing on the internet! If
+you plan on just having a small personal site with a few viewers and
+friends, that won't be a big concern, but most VPS providers like Vultr
+have caps on how much bandwidth can be used within a month without being
+throttled. This level is far beyond what most sites need, but it might
+be an issue with a video site!</p>
+<p>So if you plan on having a big video-sharing PeerTube site, it's a good
+idea to host it with a provider that offers infinite bandwidth. I
+strongly recommend getting a separate VPS with
+<a href="https://my.frantech.ca/aff.php?aff=3886">Frantech/BuyVM</a>. They have
+unmetered bandwidth, extremely cheap block storage for hosting many,
+many videos and they even have a good record of being censorship
+resistant.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p><strong>Most</strong> of PeerTube's dependencies can be installed with this command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install -y curl sudo unzip vim ffmpeg postgresql postgresql-contrib g++ make redis-server git python-dev cron wget
+</span></span></code></pre></div><p>It's also important to start all associated daemons:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl start postgresql redis
+</span></span></code></pre></div><p>PeerTube also requires <strong>NodeJS 14</strong> and <strong>yarn</strong> which cannot be
+installed from the Debian repositories. This means they have to be
+installed from separate, external repos:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>curl -fsSL https://deb.nodesource.com/setup_14.x | bash -
+</span></span><span style="display:flex;"><span>apt install -y nodejs
+</span></span><span style="display:flex;"><span>npm install --global yarn
+</span></span></code></pre></div><p>Now we create a PeerTube user to run and handle PeerTube with the proper
+permissions:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>useradd -m -d /var/www/peertube -s /bin/bash -p peertube peertube
+</span></span></code></pre></div><h2 id="database">Database</h2>
+<p>PeerTube requires a PostgreSQL database to function. To create it, first
+make a new Postgres user named PeerTube:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>su -l postgres
+</span></span><span style="display:flex;"><span>createuser -P peertube
+</span></span><span style="display:flex;"><span>createdb -O peertube -E UTF8 -T template0 peertube_prod
+</span></span><span style="display:flex;"><span>psql -c <span style="color:#e6db74">&#34;CREATE EXTENSION pg_trgm;&#34;</span> peertube_prod
+</span></span><span style="display:flex;"><span>psql -c <span style="color:#e6db74">&#34;CREATE EXTENSION unaccent;&#34;</span> peertube_prod
+</span></span><span style="display:flex;"><span>exit
+</span></span></code></pre></div><p>Be sure to <strong>make note of your Postgres user password,</strong> as it will be
+needed later when setting up PeerTube.</p>
+<h2 id="installation">Installation</h2>
+<p>Using <code>su -l</code>, we will become the PeerTube user to create the required
+directories and download and install PeerTube itself with the proper
+permissions. First, we create the required directories.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -l peertube
+</span></span><span style="display:flex;"><span>mkdir config storage versions
+</span></span><span style="display:flex;"><span>chmod <span style="color:#ae81ff">750</span> config
+</span></span></code></pre></div><h3 id="downloading-peertube">Downloading PeerTube</h3>
+<p>Still as the PeerTube user, we can now check for the most recent
+PeerTube versions number, download and install it in the newly created
+<code>versiond</code> directory.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>VERSION<span style="color:#f92672">=</span><span style="color:#66d9ef">$(</span>curl -s https://api.github.com/repos/chocobozzz/peertube/releases/latest | grep tag_name | cut -d <span style="color:#e6db74">&#39;&#34;&#39;</span> -f 4<span style="color:#66d9ef">)</span>
+</span></span><span style="display:flex;"><span>cd /var/www/peertube/versions
+</span></span><span style="display:flex;"><span>wget <span style="color:#e6db74">&#34;https://github.com/Chocobozzz/PeerTube/releases/download/</span><span style="color:#e6db74">${</span>VERSION<span style="color:#e6db74">}</span><span style="color:#e6db74">/peertube-</span><span style="color:#e6db74">${</span>VERSION<span style="color:#e6db74">}</span><span style="color:#e6db74">.zip&#34;</span>
+</span></span><span style="display:flex;"><span>unzip peertube-<span style="color:#e6db74">${</span>VERSION<span style="color:#e6db74">}</span>.zip
+</span></span><span style="display:flex;"><span>rm peertube-<span style="color:#e6db74">${</span>VERSION<span style="color:#e6db74">}</span>.zip
+</span></span></code></pre></div><h3 id="installation-via-yarn">Installation via Yarn</h3>
+<p>The downloaded release can then be symbolically linked to
+<code>/var/www/peertube/peertube-latest</code> and <strong>yarn</strong> is used to install
+PeerTube:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /var/www/peertube
+</span></span><span style="display:flex;"><span>ln -s versions/peertube-<span style="color:#e6db74">${</span>VERSION<span style="color:#e6db74">}</span> ./peertube-latest
+</span></span><span style="display:flex;"><span>cd ./peertube-latest
+</span></span><span style="display:flex;"><span>yarn install --production --pure-lockfile
+</span></span></code></pre></div><h2 id="configuration">Configuration</h2>
+<p>PeerTube's default config file can be copied over to
+<code>/var/www/peertube/config/production.yaml</code> so it can actually be used:</p>
+<p>Note that we are still running these as the PeerTube user (having run
+<code>su -l peertube</code>).</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /var/www/peertube
+</span></span><span style="display:flex;"><span>cp peertube-latest/config/production.yaml.example config/production.yaml
+</span></span></code></pre></div><p>Now the <code>production.yaml</code> file must be edited in the following ways:</p>
+<p>First, add the hostname:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">webserver</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">https</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">hostname</span>: <span style="color:#e6db74">&#39;example.org&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">port</span>: <span style="color:#ae81ff">443</span>
+</span></span></code></pre></div><p>Then, the database:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">database</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">hostname</span>: <span style="color:#e6db74">&#39;localhost&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">port</span>: <span style="color:#ae81ff">5432</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ssl</span>: <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">suffix</span>: <span style="color:#e6db74">&#39;_prod&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">username</span>: <span style="color:#e6db74">&#39;peertube&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">password</span>: <span style="color:#e6db74">&#39;your_password&#39;</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">pool</span>:
+</span></span><span style="display:flex;"><span>     <span style="color:#f92672">max</span>: <span style="color:#ae81ff">5</span>
+</span></span></code></pre></div><p>An email to generate the admin user:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">admin</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Used to generate the root user at first startup</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># And to receive emails from the contact form</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">email</span>: <span style="color:#e6db74">&#39;chad@example.org&#39;</span>
+</span></span></code></pre></div><p>And <strong>optionally,</strong> email server information:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">smtp</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># smtp or sendmail</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">transport</span>: <span style="color:#ae81ff">smtp</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># Path to sendmail command. Required if you use sendmail transport</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">sendmail</span>: <span style="color:#66d9ef">null</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">hostname</span>: <span style="color:#ae81ff">mail.example.org</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">port: 465 # If you use StartTLS</span>: <span style="color:#ae81ff">587</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">username</span>: <span style="color:#ae81ff">your_email_username</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">password</span>: <span style="color:#ae81ff">your_email_password</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">tls: true # If you use StartTLS</span>: <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">disable_starttls</span>: <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">ca_file</span>: <span style="color:#66d9ef">null</span> <span style="color:#75715e"># Used for self signed certificates</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">from_address</span>: <span style="color:#e6db74">&#39;admin@example.org&#39;</span>
+</span></span></code></pre></div><p>At this point, we have done all we need to do as the PeerTube user. Run
+<code>exit</code> or press <kbd>Ctrl-d</kbd> to log out and return to the root prompt where
+we will configure Nginx and other system settings.</p>
+<h2 id="certbot">Certbot</h2>
+<p>First, we will want a Certbot SSL certificate to encrypt connections to
+our PeerTube instance. Just run the following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot --nginx -d peertube.example.org certonly
+</span></span></code></pre></div><h2 id="nginx">Nginx</h2>
+<p>PeerTube includes an Nginx configuration that can be copied over to
+<code>/etc/nginx/sites-available:</code></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cp /var/www/peertube/peertube-latest/support/nginx/peertube /etc/nginx/sites-available/peertube
+</span></span></code></pre></div><p>Because the PeerTube config is so long, it's recommended to use <code>sed</code>
+to modify the contents of the file, replacing <code>${WEBSERVER_HOST}</code> with
+your hostname, and <code>$(PEERTUBE_HOST)</code> with your localhost and port,
+which by default should be <code>127.0.0.1:9000</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>sed -i <span style="color:#e6db74">&#39;s/${WEBSERVER_HOST}/example.org/g&#39;</span> /etc/nginx/sites-available/peertube
+</span></span><span style="display:flex;"><span>sed -i <span style="color:#e6db74">&#39;s/${PEERTUBE_HOST}/127.0.0.1:9000/g&#39;</span> /etc/nginx/sites-available/peertube
+</span></span></code></pre></div><p>Once you're happy with the Nginx config file, link it to
+<code>sites-enabled</code> to activate it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ln -s /etc/nginx/sites-available/peertube /etc/nginx/sites-enabled/peertube
+</span></span></code></pre></div><h2 id="running-peertube">Running PeerTube</h2>
+<p>A config file for a systemd daemon is included in PeerTube and can be
+setup and started like so:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cp /var/www/peertube/peertube-latest/support/systemd/peertube.service /etc/systemd/system/
+</span></span><span style="display:flex;"><span>systemctl daemon-reload
+</span></span><span style="display:flex;"><span>systemctl start peertube
+</span></span></code></pre></div><p>PeerTube will take a minute or so to start, but after it does, you can check
+its status with <code>systemctl status peertube</code> and at this point, your
+PeerTube site should be live!</p>
+<h2 id="using-peertube">Using PeerTube</h2>
+<p>To set a password for your admin user, run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /var/www/peertube/peertube-latest
+</span></span><span style="display:flex;"><span>NODE_CONFIG_DIR<span style="color:#f92672">=</span>/var/www/peertube/config NODE_ENV<span style="color:#f92672">=</span>production npm run reset-password -- -u root
+</span></span></code></pre></div><p>Login to your PeerTube instance using the admin email specified in your
+<code>production.yaml</code> file and the admin password you just set.</p>
+
+<figure ><img src="/pix/peertube-login.jpg" alt="PeerTube login"></figure>
+
+<p>Once logged in, it's recommended to create a separate user without
+admin privileges for uploading videos to PeerTube. This can be done
+easily from the users tab in the administration section.</p>
+<p>Enjoy your PeerTube instance!</p>
+<hr>
+<h2 id="updating-peertube">Updating PeerTube</h2>
+<p>PeerTube is constantly adding new features, so it's a good idea to
+<a href="https://github.com/Chocobozzz/PeerTube/blob/develop/CHANGELOG.md">check for new
+updates</a>
+and add them if you wish. Just in the past year, they have added
+livestreaming and more.</p>
+<p>Updating is fairly easy now since an <code>upgrade.sh</code> script has been added.
+Just run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /var/www/peertube/peertube-latest/scripts <span style="color:#f92672">&amp;&amp;</span> sudo -H -u peertube ./upgrade.sh
+</span></span></code></pre></div><p>Although check the
+<a href="https://github.com/Chocobozzz/PeerTube/blob/develop/CHANGELOG.md">changelog</a>
+to see if there are additional manual requirements for particular
+updates.</p>
+<hr>
+<p><em>Written by <a href="https://denshi.org">Denshi.</a> Donate Monero
+<a href="https://denshi.org/donate.html">here</a>
+<a href="https://denshi.org/images/monero.jpg">[QR]</a></em></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

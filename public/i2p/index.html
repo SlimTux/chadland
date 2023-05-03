@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>I2p | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Now you have a website, why not offer it in a private alternative such as the Invisible Internet?
+Setting up I2P There are 2 main I2P implementations, I2P and i2pd, we are using i2pd in this guide because it&#39;s easier to use in servers.
+Installing I2P i2pd is in most repos, in debian/ubuntu you can install it simply with
+apt install i2pd Enabling I2P We are going to create a user for i2pd, because i2pd finds the configuration files in its home directory.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/itoopie.svg" class=titleicon>i2p</h1></header>
+<article><img src="/pix/i2p.svg" class=titleimg>
+<p>Now you have a website, why not offer it in a private alternative such
+as the Invisible Internet?</p>
+<h2 id="setting-up-i2p">Setting up I2P</h2>
+<p>There are 2 main I2P implementations, I2P and i2pd, we are using i2pd in
+this guide because it's easier to use in servers.</p>
+<h3 id="installing-i2p">Installing I2P</h3>
+<p>i2pd is in most repos, in debian/ubuntu you can install it simply with</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install i2pd
+</span></span></code></pre></div><h3 id="enabling-i2p">Enabling I2P</h3>
+<p>We are going to create a user for i2pd, because i2pd finds the
+configuration files in its home directory. And it's easier (and more
+tidy) to have it in a separate user:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>useradd -m i2p -s /bin/bash
+</span></span><span style="display:flex;"><span>su -l i2p
+</span></span><span style="display:flex;"><span>mkdir ~/.i2pd
+</span></span><span style="display:flex;"><span>cd ~/.i2pd
+</span></span></code></pre></div><p>Now that you're in ~/.i2pd, you have to create a file named
+&quot;tunnels.conf&quot;. Which is the config file for every hidden service
+you're offering over I2P, the content should be like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-systemd" data-lang="systemd"><span style="display:flex;"><span><span style="color:#66d9ef">[example]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">type </span><span style="color:#f92672">=</span><span style="color:#e6db74"> http</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">host </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 127.0.0.1</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">port </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 8080</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">keys </span><span style="color:#f92672">=</span><span style="color:#e6db74"> example.dat</span>
+</span></span></code></pre></div><h3 id="getting-your-i2p-hostname">Getting your I2P Hostname</h3>
+<p>Then, run <code>/usr/sbin/i2pd --daemon</code> to start i2pd and we can retreive
+our I2P hostname.</p>
+<p>This can be done in lynx or a command-line browser by going to
+<code>http://127.0.0.1:7070/?page=i2p_tunnels</code> to get your I2P hostname.</p>
+<p>You can also run these commands to find your hostname:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>printf <span style="color:#e6db74">&#34;%s.b32.i2p
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">&#34;</span> <span style="color:#66d9ef">$(</span>head -c <span style="color:#ae81ff">391</span> /home/i2p/.i2pd/example.dat |sha256sum|xxd -r -p | base32 |sed s/<span style="color:#f92672">=</span>//g | tr A-Z a-z<span style="color:#66d9ef">)</span>
+</span></span></code></pre></div><h2 id="adding-the-nginx-config">Adding the Nginx Config</h2>
+<p>From here, the steps are almost identical to setting up a normal website
+configuration file. Follow the steps as if you were making a new website
+on the webserver <a href="/basic/nginx">tutorial</a> up until the server block of
+code. Instead, paste this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">listen</span> 127.0.0.1:<span style="color:#ae81ff">8080</span> ;
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">root</span> <span style="color:#e6db74">/var/www/<mark>example</mark></span> ;
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">index</span> <span style="color:#e6db74">index.html</span> ;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h4 id="clarifications">Clarifications</h4>
+<h4 id="heading"></h4>
+<p>Nginx will listen in port 8080, but i2pd will forward your port 8080 to
+the i2p site port 80. This way you don't have to deal with server names
+or anything like that</p>
+<p>From here we are almost done, all we have to do is enable the site and
+reload nginx which is also covered in <a href="nginx.html#enable">the webserver
+tutorial</a>.</p>
+<h3 id="update-regularly">Update regularly!</h3>
+<p>Make sure to update I2P on a regular basis by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt update <span style="color:#f92672">&amp;&amp;</span> apt install i2pd
+</span></span></code></pre></div><p><strong>Contributor</strong> - <a href="https://qorg11.net">qorg11</a></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

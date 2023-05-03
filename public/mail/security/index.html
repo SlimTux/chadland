@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Harden Your E-Mail Server | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Hardening Postfix Put restrictions on servers sending mail to you.
+postconf -e &#39;smtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination, reject_unknown_recipient_domain&#39; Anonymize Headers Use some regular expressions to prevent some meta data like a client&rsquo;s ip address from being leaked.
+echo &quot;/^Received:.*/ IGNORE /^X-Originating-IP:/ IGNORE /^User-Agent:/ IGNORE /^X-Mailer:/ IGNORE&quot; &gt;&gt; /etc/postfix/header_checks Add this file to the postfix configuration:
+postconf -e &quot;header_checks = regexp:/etc/postfix/header_checks&quot; Fail2Ban If you&rsquo;re not familiar with fail2Ban, it&rsquo;s essentially a program which blocks bot&rsquo;s and hacker&rsquo;s login requests after a few invalid attempts.">
+	<meta name="keywords" content="mail">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Harden your E-mail Server</h1></header>
+<article>
+<h2 id="hardening-postfix">Hardening Postfix</h2>
+<p>Put restrictions on servers sending mail to you.</p>
+<pre><code>postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination, reject_unknown_recipient_domain'
+</code></pre>
+<h2 id="anonymize-headers">Anonymize Headers</h2>
+<p>Use some regular expressions to prevent some meta data like a client&rsquo;s ip address
+from being leaked.</p>
+<pre><code>echo &quot;/^Received:.*/     IGNORE
+/^X-Originating-IP:/    IGNORE
+/^User-Agent:/        IGNORE
+/^X-Mailer:/        IGNORE&quot; &gt;&gt; /etc/postfix/header_checks
+</code></pre>
+<p>Add this file to the postfix configuration:</p>
+<pre><code>postconf -e &quot;header_checks = regexp:/etc/postfix/header_checks&quot;
+</code></pre>
+<h2 id="fail2ban">Fail2Ban</h2>
+<p>If you&rsquo;re not familiar with fail2Ban, it&rsquo;s essentially a program which
+blocks bot&rsquo;s and hacker&rsquo;s login requests after a few invalid attempts.</p>
+<pre><code>apt-get install fail2ban
+</code></pre>
+<p>Make a local copy of the configuration file:</p>
+<pre><code>cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+</code></pre>
+<p>Go down to the <code># Mail servers</code> line and paste this:</p>
+<pre><code>[postfix]
+
+enabled  = true
+port     = smtp,ssmtp,submission
+filter   = postfix
+logpath  = /var/log/mail.log
+
+
+[sasl]
+
+enabled  = true
+port     = smtp,ssmtp,submission,imap2,imap3,imaps,pop3,pop3s
+filter   = postfix-sasl
+# You might consider monitoring /var/log/mail.warn instead if you are
+# running postfix since it would provide the same log lines at the
+# &quot;warn&quot; level but overall at the smaller filesize.
+logpath  = /var/log/mail.warn
+maxretry = 1
+bantime  = 21600
+
+[dovecot]
+
+enabled = true
+port    = smtp,ssmtp,submission,imap2,imap3,imaps,pop3,pop3s
+filter  = dovecot
+logpath = /var/log/mail.log
+</code></pre>
+<p>This will only grant 2 login attempts and then block the requester for 6 hours. Now restart <code>fail2ban</code>:</p>
+<pre><code>systemctl restart fail2ban
+</code></pre>
+</article>
+
+<span class=prev>Or Previous: <a href="/mail/inbox/">Setting up an E-mail Inbox</a></span>
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

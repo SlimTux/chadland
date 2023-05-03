@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Calibre | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="The Calibre library server is a great way to store your eBooks. It allows you to:
+Share your books with others. Easily transfer your books between devices and access them from anywhere. Installation Install the Calibre package. You might also want rsync to upload books.
+apt install -y calibre rsync mkdir /opt/calibre Either upload your existing library using rsync. For example to /opt/calibre/.
+cd ~/Documents rsync -avuP your-library-dir root@example.org:/opt/calibre/ Or create a library and add a book to it:">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/calibre.png" class=titleicon>Calibre</h1></header>
+<article>
+<p>The Calibre library server is a great way to store your eBooks. It
+allows you to:</p>
+<ul>
+<li>Share your books with others.</li>
+<li>Easily transfer your books between devices and access them from
+anywhere.</li>
+</ul>
+<h2 id="installation">Installation</h2>
+<p>Install the Calibre package. You might also want rsync to upload books.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install -y calibre rsync
+</span></span><span style="display:flex;"><span>mkdir /opt/calibre
+</span></span></code></pre></div><p>Either upload your existing library using <code>rsync</code>. For example to
+<code>/opt/calibre/</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd ~/Documents
+</span></span><span style="display:flex;"><span>rsync -avuP your-library-dir root@<mark>example.org</mark>:/opt/calibre/
+</span></span></code></pre></div><p>Or create a library and add a book to it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /opt/calibre
+</span></span><span style="display:flex;"><span>calibredb add book.epub --with-library your-library
+</span></span></code></pre></div><p>For more information about the <code>calibredb</code> command see <code>man calibredb</code>.</p>
+<p>Add a new user to protect your server:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>calibre-server --manage-users
+</span></span></code></pre></div><h2 id="creating-a-service">Creating a service</h2>
+<p>Create a new file <code>/etc/systemd/system/calibre-server.service</code> and add
+the following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-systemd" data-lang="systemd"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Description</span><span style="color:#f92672">=</span><span style="color:#e6db74">Calibre library server</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">After</span><span style="color:#f92672">=</span><span style="color:#e6db74">network.target</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">simple</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span><span style="color:#f92672">=</span><span style="color:#e6db74">root</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Group</span><span style="color:#f92672">=</span><span style="color:#e6db74">root</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/usr/bin/calibre-server --enable-auth --enable-local-write /opt/calibre/your_library --listen-on 127.0.0.1</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Install]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">WantedBy</span><span style="color:#f92672">=</span><span style="color:#e6db74">multi-user.target</span>
+</span></span></code></pre></div><p>You can change the port with the <code>--port</code> prefix. Additional information
+<code>man calibre-server</code>.</p>
+<p>Issue <code>systemctl daemon-reload</code> to apply the changes.</p>
+<p>Enable and start the service.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl enable calibre-server
+</span></span><span style="display:flex;"><span>systemctl start calibre-server
+</span></span></code></pre></div><h2 id="a-reverse-proxy-with-nginx">A reverse proxy with Nginx</h2>
+<p>Create a new file <code>/etc/nginx/sites-available/calibre</code> and enter the
+following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">client_max_body_size</span> <span style="color:#e6db74">64M</span>; <span style="color:#75715e"># to upload large books
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74"><mark>calibre.example.org</mark></span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">proxy_pass</span> <span style="color:#e6db74">http://127.0.0.1:8080</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Issue a Let's Encrypt certificate. <a href="/certbot">Detailed instructions and additional information</a>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot --nginx
+</span></span></code></pre></div><p>Now just go to <strong>calibre.example.org</strong>. The server will request an
+username and a password.</p>
+
+<figure ><img src="/pix/calibre/calibre-1.png" alt="calibre"></figure>
+
+<p>After login you will see something like this.</p>
+
+<figure ><img src="/pix/calibre/calibre-2.png" alt="calibre"></figure>
+
+<h2 id="contribution">Contribution</h2>
+<p>Author: rflx &ndash; <a href="https://rflx.xyz">website</a> -- XMR:
+<code>48T5XpHTXAZ5Nn8YCypA4aWn1ffQLHJkFGDArXQB6cmrP6cqLY72cu7CR2iq2MmL5Ndu3d47e5MKjGpL4prYgdrTCFAHD9c</code></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

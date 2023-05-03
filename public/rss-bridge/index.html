@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>RSS Bridge | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="RSS Bridge is a useful utility you can use to help you avoid the big tech sites, like Facebook and Twitter, which instead of the feed you usually would see, will be a based and minimalist RSS feed.
+You&#39;ll need a server or VPS. Nearly any Operating system is supported but for this tutorial I&#39;m gonna presume you&#39;re using a Debian-based OS. You&#39;ll also need a domain name pointing to your server&#39;s IP address which is explained in this tutorial.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/rss.svg" class=titleicon>RSS Bridge</h1></header>
+<article>
+<p>RSS Bridge is a useful utility you can use to help you avoid the big
+tech sites, like Facebook and Twitter, which instead of the feed you
+usually would see, will be a based and minimalist RSS feed.</p>
+<p>You'll need a server or VPS. Nearly any Operating system is supported
+but for this tutorial I'm gonna presume you're using a Debian-based
+OS. You'll also need a domain name pointing to your server's IP
+address <a href="/basic/dns">which is explained in this tutorial.</a></p>
+<h2 id="installation">Installation</h2>
+<h3 id="setting-up-and-configuring">Setting Up and Configuring</h3>
+<p>First things first you'll need to make sure that you've hardened you
+SSH so that password authentication is disabled and you'll also want to
+setup Fail2Ban. There's a great tutorial on how to do this <a href="/sshkeys">which can be read here.</a></p>
+<p>Next we'll install the required packages:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install -y curl unzip nginx certbot php-fpm php-mysql php-cli php7.4-mbstring php7.4-curl php7.4-xml php7.4-sqlite3 php7.4-json
+</span></span></code></pre></div><p>We now have to create the website configuration file. Create/open the a
+file below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>nano /etc/nginx/sites-available/rss-bridge
+</span></span></code></pre></div><p>And add the following content:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">root</span> <span style="color:#e6db74">/var/www/rss-bridge</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">index</span> <span style="color:#e6db74">index.php</span> <span style="color:#e6db74">index.html</span> <span style="color:#e6db74">index.htm</span> <span style="color:#e6db74">index.nginx-debian.html</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74">rss-bridge.example.org</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">try_files</span> $uri $uri/ =<span style="color:#ae81ff">404</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.php$</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">include</span> <span style="color:#e6db74">snippets/fastcgi-php.conf</span>;
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">fastcgi_pass</span> <span style="color:#e6db74">unix:/var/run/php/php7.4-fpm.sock</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">/\.ht</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">deny</span> <span style="color:#e6db74">all</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>After you have saved the file, you need to create a symlink so the
+server actually will read the file.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ln -s /etc/nginx/sites-available/rss-bridge /etc/nginx/sites-enabled/rss-bridge
+</span></span></code></pre></div><p>Then we have to create the folder where the service will reside in.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir -p /var/www/rss-bridge
+</span></span><span style="display:flex;"><span>cd /var/www/rss-bridge
+</span></span></code></pre></div><p>Lets download the latest version of RSS-Bridge in the directory.</p>
+<p>The newest version can be found
+<a href="https://github.com/RSS-Bridge/rss-bridge/releases">here</a>, at the time of
+writing that is &quot;RSS-Bridge 2021-04-25.&quot;</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>wget https://github.com/RSS-Bridge/rss-bridge/archive/refs/tags/2021-04-25.zip
+</span></span></code></pre></div><p>Unzip the file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>unzip 2021-04-25.zip
+</span></span></code></pre></div><p>This will create a directory called rss-bridge-version-number, we now
+want to move all the file contents of the newly created directory to the
+one we are in</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mv rss-bridge-2021-04-25/* .
+</span></span><span style="display:flex;"><span>rm -rf rss-bridge-2021-04-25 2021-04-25.zip
+</span></span></code></pre></div><p>Now all we need to do is grant read/write permissions and reload the web
+server.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chown -R www-data:www-data /var/www/rss-bridge
+</span></span><span style="display:flex;"><span>systemctl reload nginx
+</span></span></code></pre></div><p>That's it, you should now have a working rss-bridge installed. But you
+should definately get an SSL certifcate installed <a href="/basic/certbot">which is done briefly here</a>.</p>
+<ul>
+<li><a href="https://handskemager.xyz">handskemager.xyz</a></li>
+<li>Bitcoin: <code>bc1qhfjgwjzksf2auqjefwpvq20wvyugq3lhqgkxvu</code>{.crypto}</li>
+<li>Monero:
+<code>88cPx6Gzv5RWRRJLstUt6hACF1BRKPp1RMka1ukyu2iuHT7iqzkNfMogYq3YdDAC8AAYRqmqQMkCgBXiwdD5Dvqw3LsPGLU</code>{.crypto}</li>
+</ul>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Setting Up an E-Mail Inbox | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="In the article on SMTP and Postfix, we set up a simple Postfix server that we could use to programatically send mail with the mail command. In order to have a true and fully-functional mail server, users should be able to login to a mail client where they can read their inbox and send mail remotely. In order to achieve this we need Dovecot, which can store mails received by the server, authenticate user accounts and interact with mail.">
+	<meta name="keywords" content="mail">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Setting up an E-mail Inbox</h1></header>
+<article>
+<p>In the article on <a href="/mail/smtp">SMTP and Postfix</a>, we set up a simple
+Postfix server that we could use to programatically send mail with the
+<code>mail</code> command. In order to have a true and fully-functional mail
+server, users should be able to login to a mail client where they
+can read their inbox and send mail remotely. In order to achieve this we need Dovecot,
+which can store mails received by the server,
+authenticate user accounts and interact with mail.</p>
+<p>If we&rsquo;re setting up an inbox we will also want spam detection software, such
+as spam assassin.</p>
+<h2 id="dovecot-and-spamassassin">Dovecot and Spamassassin</h2>
+<pre><code>apt install dovecot-imapd dovecot-sieve spamassassin spamc
+</code></pre>
+<p>Unblock the imap port:</p>
+<pre><code>ufw allow 993
+</code></pre>
+<h2 id="certificate">Certificate</h2>
+<p>We will want a SSL certificate for the <code>mail.</code> subdomain. We can get
+this with <a href="/basic/certbot/">Certbot</a>. Assuming we are using Nginx for our
+server otherwise, run:</p>
+<pre><code>certbot --nginx certonly -d mail.example.org
+</code></pre>
+<h2 id="dns">DNS</h2>
+<p>We also need two little DNS records set on your domain registrar&rsquo;s site/DNS server:</p>
+<ol>
+<li>An MX record. Just put your domain, <strong>example.org</strong>, in the &ldquo;Points to&rdquo; field.</li>
+<li>A CNAME record. Host field: <strong>mail.example.org</strong>. &ldquo;Points to&rdquo; field: <strong>example.org.</strong></li>
+</ol>
+<h2 id="configuring-dovecot">Configuring Dovecot</h2>
+<p>Dovecot's configuration file is in <code>/etc/dovecot/docevot.conf</code>. If you
+open that file, you will see this line: <code>!include conf.d/*.conf</code> which adds
+all the <code>.conf</code> files in <code>/etc/dovecot/conf.d/</code> to the Dovecot
+configuration.</p>
+<p>One can edit each of these files individually to get the needed
+configuration, but to make things easy here, delete or backup the main
+configuration file and we will replace it with one single config file
+with all important settings in it. Make sure you change <code>ssl_cert</code>
+and <code>ssl_key</code> accordingly.</p>
+<pre tabindex="0"><code class="language-wide" data-lang="wide"># Note that in the dovecot conf, you can use:
+# %u for username
+# %n for the name in name@domain.tld
+# %d for the domain
+# %h the user&#39;s home directory
+
+# Connections between the mail client and Dovecot needs to be encrypted
+ssl = required
+ssl_cert = &lt;/etc/letsencrypt/live/mail.example.org/fullchain.pem
+ssl_key = &lt;/etc/letsencrypt/live/mail.example.org/privkey.pem
+ssl_min_protocol = TLSv1.2
+ssl_cipher_list = EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA256:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EDH+aRSA+AESGCM:EDH+aRSA+SHA256:EDH+aRSA:EECDH:!aNULL:!eNULL:!MEDIUM:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS:!RC4:!SEED
+ssl_prefer_server_ciphers = yes
+ssl_dh = &lt;/usr/share/dovecot/dh.pem
+auth_mechanisms = plain login
+auth_username_format = %n
+
+protocols = $protocols imap
+
+# Search for valid users in /etc/passwd
+userdb {
+    driver = passwd
+}
+#Fallback: Use plain old PAM to find user passwords
+passdb {
+    driver = pam
+}
+
+# Our mail for each user will be in ~/Mail, and the inbox will be ~/Mail/Inbox
+mail_location = maildir:~/Mail:INBOX=~/Mail/Inbox:LAYOUT=fs
+namespace inbox {
+    inbox = yes
+    mailbox Drafts {
+    special_use = \Drafts
+    auto = subscribe
+}
+    mailbox Junk {
+    special_use = \Junk
+    auto = subscribe
+    autoexpunge = 30d
+}
+    mailbox Sent {
+    special_use = \Sent
+    auto = subscribe
+}
+    mailbox Trash {
+    special_use = \Trash
+}
+    mailbox Archive {
+    special_use = \Archive
+}
+}
+
+# Here we let Postfix use Dovecot&#39;s authetication system.
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0660
+    user = postfix
+    group = postfix
+}
+}
+
+protocol lda {
+  mail_plugins = \$mail_plugins sieve
+}
+protocol lmtp {
+  mail_plugins = \$mail_plugins sieve
+}
+plugin {
+	sieve = ~/.dovecot.sieve
+	sieve_default = /var/lib/dovecot/sieve/default.sieve
+	sieve_dir = ~/.sieve
+	sieve_global_dir = /var/lib/dovecot/sieve/
+}
+</code></pre><h3 id="settings-explained">Settings Explained</h3>
+<p>Take a good look at the above settings to understand what's going on. Some of
+the settings include:</p>
+<ol>
+<li>SSL settings to allow encrypted connections.</li>
+<li>The mail server will authenticate users against PAM/passwd, which
+means users you create on the server (so long as they are part of
+the <code>mail</code> group) will be able to receive and send mail.</li>
+<li>Default directories for a mail account: Inbox, Sent, Drafts, Junk,
+Trash and Archive.</li>
+<li>Create a <code>unix_listener</code> that will allow Postfix to authenticate
+users via Dovecot.</li>
+<li>Setup the Dovecot sieve plugin, which provides mail filtering facilities
+at time of final message delivery. Sieve scripts can be used to
+customize how messages are delivered, whether they&rsquo;re forwarded
+or stored in special folders.</li>
+</ol>
+<p>Next, we can tell sieve to automatically move mail flagged as spam to
+the junk folder:</p>
+<pre><code>echo &quot;require [\&quot;fileinto\&quot;, \&quot;mailbox\&quot;];
+if header :contains \&quot;X-Spam-Flag\&quot; \&quot;YES\&quot;
+        {
+                fileinto \&quot;Junk\&quot;;
+        }&quot; &gt; /var/lib/dovecot/sieve/default.sieve
+</code></pre>
+<p>After that, we should create the <code>vmail</code> user and group, which will
+access the mails, and then update the sieve configuration:</p>
+<pre><code>grep -q '^vmail:' /etc/passwd || useradd vmail
+chown -R vmail:vmail /var/lib/dovecot
+sievec /var/lib/dovecot/sieve/default.sieve
+</code></pre>
+<p>Then, enable pam authentication for Dovecot:</p>
+<pre><code>echo &quot;auth    required        pam_unix.so nullok
+account required        pam_unix.so&quot; &gt;&gt; /etc/pam.d/dovecot
+</code></pre>
+<h2 id="connecting-postfix-and-dovecot">Connecting Postfix and Dovecot</h2>
+<p>We need to tell Postfix to look to Dovecot for authenticating users/passwords.
+Dovecot will be putting an authentication socket in <code>/var/spool/postfix/private/auth</code>.</p>
+<pre><code>postconf -e 'smtpd_sasl_auth_enable = yes'
+postconf -e 'smtpd_sasl_type = dovecot'
+postconf -e 'smtpd_sasl_path = private/auth'
+postconf -e 'mailbox_command = /usr/lib/dovecot/deliver'
+</code></pre>
+<h2 id="connecting-postfix-and-spamassassin">Connecting Postfix and Spamassassin</h2>
+<p>We will change <code>/etc/postifx/master.cf</code> so postfix can route mail through spamassassin. First
+we can cleanup the default configuration. Feel free to make a backup.</p>
+<pre><code>sed -i '/^\s*-o/d;/^\s*submission/d;/^\s*smtp/d' /etc/postfix/master.cf
+</code></pre>
+<p>Finally, run this command to finish the configuration for spamassassin.</p>
+<pre><code>echo &quot;smtp unix - - n - - smtp
+smtp inet n - y - - smtpd
+  -o content_filter=spamassassin
+submission inet n       -       y       -       -       smtpd
+  -o syslog_name=postfix/submission
+  -o smtpd_tls_security_level=encrypt
+  -o smtpd_sasl_auth_enable=yes
+  -o smtpd_tls_auth_only=yes
+smtps     inet  n       -       y       -       -       smtpd
+  -o syslog_name=postfix/smtps
+  -o smtpd_tls_wrappermode=yes
+  -o smtpd_sasl_auth_enable=yes
+spamassassin unix -     n       n       -       -       pipe
+  user=debian-spamd argv=/usr/bin/spamc -f -e /usr/sbin/sendmail -oi -f \${sender} \${recipient}&quot; &gt;&gt; /etc/postfix/master.cf
+</code></pre>
+<h2 id="make-new-mail-accounts">Make new mail accounts</h2>
+<p>This is the easy part. Let&rsquo;s say we want to add a user Billy and let him
+receive mail, run this:</p>
+<pre><code>useradd -m -G mail billy
+passwd billy
+</code></pre>
+<p>Any user added to the <code>mail</code> group will be able to receive mail. Suppose a user
+Cassie already exists and we want to let her receive mail too. Just run:</p>
+<pre><code>usermod -a -G mail cassie
+</code></pre>
+</article>
+<a class=next href="/mail/security/">Next: Harden your E-mail Server</a>
+<span class=prev>Or Previous: <a href="/mail/validate/">Validate Email with DNS Records</a></span>
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

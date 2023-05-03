@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Git Server | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Once you have your own VPS or other Internet-available server, you can start hosting your own git repositories. The goal of this tutorial is for you to go from
+git clone github.com/... to
+git clone YourLandChadDomainName.xyz/... so you can cultivate your own homegrown, grass-fed code, rather than relying on a centralized proprietary service like GitHub.
+Installing git You most likely already have it installed on your server, but if not, run:">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/git.svg" class=titleicon>Git Server</h1></header>
+<article>
+<p>Once you have your own VPS or other Internet-available server, you can
+start hosting your own git repositories. The goal of this tutorial is
+for you to go from</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git clone github.com/...
+</span></span></code></pre></div><p>to</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git clone YourLandChadDomainName.xyz/...
+</span></span></code></pre></div><p>so you can cultivate your own homegrown, grass-fed code, rather than
+relying on a centralized proprietary service like GitHub.</p>
+<h2 id="installing-git">Installing git</h2>
+<p>You most likely already have it installed on your server, but if not,
+run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install git
+</span></span></code></pre></div><p>We don't need any additional software, <code>git</code> itself ships with
+everything needed to host a remote repository!</p>
+<h2 id="creating-a-git-user">Creating a git user</h2>
+<p>To prevent exploiting your system, services should usually be run under another
+user that can only affect the relevant parts of the server. Let&rsquo;s create a user
+for git.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>useradd -m git -d /var/git -s /bin/bash
+</span></span></code></pre></div><p>The <code>git</code> user&rsquo;s home directory will be <code>/var/git</code> and we also set the default
+user shell as bash instead of sh for ease when on the command line.</p>
+<h3 id="become-the-git-user-and-create-the-directory">Become the git user and create the directory</h3>
+<p>If you're logged in to your server as root and have <code>git</code> installed,
+you can become the <code>git</code> user by executing</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -l git
+</span></span></code></pre></div><p>The <code>-l</code> option should put us in <code>git</code>&rsquo;s home directory, but you can <code>cd /var/git</code> otherwise.</p>
+<h3 id="create-the-repo">Create the repo</h3>
+<p>Now you can create the bare repository with</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git init --bare <mark>my-repo.git</mark>
+</span></span></code></pre></div><p>By convention, bare repository names end with &quot;.git&quot;. (A bare repository is
+just one without the file index, (i.e. the familiar browseable file structure).)</p>
+<p>Repeat the above command for any other repositories you want to host.</p>
+<h2 id="syncing-local-repositories-with-your-server">Syncing local repositories with your server</h2>
+<h3 id="set-up-ssh-login-for-the-git-user">Set up SSH login for the git user</h3>
+<p>Git uses SSH to connect to a server, and we will definitely want to use an SSH
+key pair that we authorized. This is not only most secure, but also easiest
+since we don&rsquo;t need to put in our password whenever we pull or push.</p>
+<p>There is a brief article <a href="/sshkeys">on setting up SSH keys</a>. We need to do
+exactly that, but for the <code>git</code> user, instead of the default <code>root</code> user. Note
+that if you want to upload your SSH key directly to the git user as in that
+tutorial, remember to run <code>passwd git</code> to give the git user a password so you
+can log in.</p>
+<p>If you&rsquo;ve already set up password-less SSH log-ins for root (and disabled SSH
+password authentication), you can run the following commands as root, which
+will copy over your authorized key to the git user as well.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir /var/git/.ssh	<span style="color:#75715e"># Create the required directory.</span>
+</span></span><span style="display:flex;"><span>cp ~/.ssh/authorized_keys /var/git/.ssh/	<span style="color:#75715e"># Copy over the authorized key.</span>
+</span></span><span style="display:flex;"><span>chown git:git -R /var/git/.ssh	<span style="color:#75715e"># Make the created directory and contents to be owned by the git user.</span>
+</span></span></code></pre></div><h3 id="syncing-a-new-repository-with-your-server">Syncing a new repository with your server</h3>
+<p>How that we&rsquo;ve set that up, we can push a repository we have on our computer to
+that newly created bare repo. First, on our local computer, we run a command like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git remote add origin git@<mark>example.org</mark>:<mark>my-repo.git</mark>
+</span></span></code></pre></div><p>Note some of the things you will change:</p>
+<ul>
+<li><code>example.org</code>, obviously is a stand-in for your domain name.</li>
+<li><code>my-repo.git</code> is the name of the repository, but it is also the relative location of it. Since it is in the <code>git</code> user&rsquo;s home directory, we don&rsquo;t need anything else, but if you decide to put a git repository elsewhere&mdash;like in <code>/var/www/git/stuff.git</code>, you can provide that absolute file location instead.</li>
+<li><code>origin</code> is a unique name for your remote repository. Since &ldquo;origin&rdquo; is probably already used if you are using Github or another service, you&rsquo;ll want to change this to whatever you want. Could be <code>myserver</code> or <code>vps</code> or <code>own</code>, as long as it is unique.</li>
+</ul>
+<p>Once you run that command successfully to add a new remote repository, and also assuming you change <code>origin</code> to let&rsquo;s say the more unique <code>personal</code>, you can push your local git server as expected:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git push <mark>personal</mark> master
+</span></span></code></pre></div><p>That&rsquo;s all a git server is! Very simple.</p>
+<p>If you want a minimalist front-end to a git server, follow our guide on <a href="/cgit">cgit</a>!</p>
+<p>If you want a large and user-friendly Github-like site for your git projects, follow our guide on <a href="/gitea">Gitea</a>!</p>
+<h2 id="contribution">Contribution</h2>
+<ul>
+<li>Martin Chrzanowski -- <a href="https://m-chrzan.xyz">website</a>, <a href="https://m-chrzan.xyz/donate.html">donate</a></li>
+<li>Edits and fixes by Luke.</li>
+</ul>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

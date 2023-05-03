@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Using UFW as a Firewall | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Uncomplicated Firewall (UFW) is a front-facing program for the more involved iptables firewall program installed in most GNU/Linux distributions. We can use ufw to restrict machines on the internet to only access the services (SSH, websites etc) you want them to, but it can also be used to prevent programs on the computer itself from accesing parts of the internet it shouldn&#39;t.
+How to Get It Log into your server by pulling up a terminal and typing:">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Using UFW as a Firewall</h1></header>
+<article>
+<p><strong>Uncomplicated Firewall</strong> (UFW) is a front-facing program for the more
+involved <code>iptables</code> firewall program installed in most GNU/Linux
+distributions. We can use <code>ufw</code> to restrict machines on the internet to
+only access the services (SSH, websites etc) you want them to, but it
+can also be used to prevent programs on the computer itself from
+accesing parts of the internet it shouldn't.</p>
+<h2 id="how-to-get-it">How to Get It</h2>
+<p>Log into your server by pulling up a terminal and typing:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh root@example.org
+</span></span></code></pre></div><p>This command will attempt to log into your server and run a remote
+shell. If you leave the settings default, it should prompt you for your
+password, and you can just copy or type in the password from Vultr's
+site.</p>
+<p>Some VPS providers automatically install <code>ufw</code>, but if you do not have
+it installed already, install it in the typical way:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install ufw
+</span></span></code></pre></div><h2 id="first-time-setup">First-Time Setup</h2>
+<p>You can check the status of <code>ufw</code> right now by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw status
+</span></span></code></pre></div><p>Without any changes, it should report back <code>Status: inactive</code>. Let's
+set it up so that only connections to SSH (standardized at port 22) are
+allowed in, and then enable the firewall:</p>
+<p><strong>Careful!</strong> Enabling <code>ufw</code> without allowing SSH will block you from
+remoting to your server. Double-check that you have allowed SSH, and if
+you have changed the default SSH port, put in <em>that</em> number instead.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw default deny incoming <span style="color:#75715e"># block all incoming connections by default</span>
+</span></span><span style="display:flex;"><span>ufw allow in ssh <span style="color:#75715e"># or: ufw allow in 22</span>
+</span></span><span style="display:flex;"><span>ufw enable
+</span></span></code></pre></div><p><code>ufw</code> has an internal list of protocols applications, and the ports used
+by them. In this case, it knows SSH is on port 22. We'll go more in
+detail how to view all protocols <code>ufw</code> knows about. By default, when you
+allow an incoming port, it allows that port both on IPv4 and IPv6.</p>
+<p>With the firewall enabled and allowing only SSH in, all other ports are
+protected from incoming requests. To view all your rules, run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw status verbose
+</span></span></code></pre></div><p>A firewall that allows to connect to SSH and their website may look
+like:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>Status: active
+</span></span><span style="display:flex;"><span>Logging: on (low)
+</span></span><span style="display:flex;"><span>Default: deny (incoming), allow (outgoing), deny (routed)
+</span></span><span style="display:flex;"><span>New profiles: skip
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>To                           Action      From
+</span></span><span style="display:flex;"><span>--                           ------      ----
+</span></span><span style="display:flex;"><span>22 (SSH)                     ALLOW IN    Anywhere
+</span></span><span style="display:flex;"><span>80,443/tcp (WWW Full)        ALLOW IN    Anywhere
+</span></span><span style="display:flex;"><span>22 (SSH (v6))                ALLOW IN    Anywhere (v6)
+</span></span><span style="display:flex;"><span>80,443/tcp (WWW Full (v6))   ALLOW IN    Anywhere (v6)
+</span></span></code></pre></div><p>If you want to delete e.g. the 'WWW Full' rule, run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw delete allow in <span style="color:#e6db74">&#39;WWW Full&#39;</span>
+</span></span><span style="display:flex;"><span>ufw reload
+</span></span></code></pre></div><h2 id="enabling-common-services">Enabling Common Services</h2>
+<p>You have blocked all incoming ports but SSH, which means no outsiders
+would be able to access other services, like an email server or your
+website. You should look at the ports your services are open on and
+enable them individually. Here is a list of a few common services:</p>
+<h3 id="opening-port-numbers">Opening Port Numbers</h3>
+<p>Suppose you install <a href="/gemini">a Gemini server</a>, which must broadcast
+on port 1965. By default <code>ufw</code> blocks all incoming connections on all
+ports, so whenever you install a new service like this you will have to
+tell <code>ufw</code> to enable the desired port:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow <span style="color:#ae81ff">1965</span>
+</span></span></code></pre></div><h3 id="websites-http-and-https">Websites: HTTP and HTTPS</h3>
+<p>HTTP uses port 80 and HTTPS uses port 443. We can enable them like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow <span style="color:#ae81ff">80</span>
+</span></span><span style="display:flex;"><span>ufw allow <span style="color:#ae81ff">443</span>
+</span></span></code></pre></div><p>But <code>ufw</code> additionally knows the typical ports of common serives, so you
+can also run this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow http
+</span></span><span style="display:flex;"><span>ufw allow https
+</span></span></code></pre></div><p>And that will do the same thing. There are also other abbreviations for
+common port lists:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow in <span style="color:#e6db74">&#39;WWW Full&#39;</span>
+</span></span></code></pre></div><p>To see these other &quot;apps&quot; that <code>ufw</code> knows by default, run
+<code>ufw app list</code></p>
+<h3 id="email-imap-pop3-and-smtp">Email: IMAP, POP3, and SMTP</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow in IMAPS
+</span></span><span style="display:flex;"><span>ufw allow in POP3
+</span></span><span style="display:flex;"><span>ufw allow in SMTP
+</span></span><span style="display:flex;"><span>ufw allow in <span style="color:#e6db74">&#39;Postfix SMTPS&#39;</span>
+</span></span><span style="display:flex;"><span>ufw allow in <span style="color:#e6db74">&#39;Mail Submission&#39;</span>
+</span></span></code></pre></div><h2 id="fine-tuning-rules">Fine-Tuning Rules</h2>
+<p>Instead of denying all ports by default, you may want to deny (ignores
+incoming requests) or reject (explicitly tells requests they're not
+allowed):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw default allow in
+</span></span><span style="display:flex;"><span>ufw deny in PORT
+</span></span><span style="display:flex;"><span>ufw reject in PORT
+</span></span><span style="display:flex;"><span>ufw reload
+</span></span></code></pre></div><p>You can add rules to comments to remember what they are there for:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow in PORT comment <span style="color:#e6db74">&#39;Secret SSH&#39;</span>
+</span></span><span style="display:flex;"><span>ufw reload
+</span></span><span style="display:flex;"><span>ufw status verbose
+</span></span></code></pre></div><p>Output:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>To                         Action      From
+</span></span><span style="display:flex;"><span>--                         ------      ----
+</span></span><span style="display:flex;"><span>PORT                       ALLOW IN    Anywhere                   # Secret SSH
+</span></span><span style="display:flex;"><span>PORT (v6)                  ALLOW IN    Anywhere (v6)              # Secret SSH
+</span></span></code></pre></div><p>To deny outgoing ports:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw deny out PORT
+</span></span></code></pre></div><p>Ratelimiting is useful to protect against brute-force login attacks,
+like in SSH. Only IPv4 is supported for now. Enable it by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw limit PORT/tcp
+</span></span></code></pre></div><p>To blocklist IP addresses:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw deny from IP_ADDRESS
+</span></span></code></pre></div><p>To read more what you can do with <code>ufw</code>, run:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>man ufw
+</span></span></code></pre></div><h2 id="recovering-from-losing-ssh">Recovering SSH</h2>
+<p>If you have accidentally firewalled yourself from logging on your
+computer, you can recover access by using your VPS's virtual console.
+On Vultr, this is on your VPS's menu. To the right of the server name,
+It is the leftmost icon that looks like a monitor.</p>
+
+<figure ><a href="/pix/ssh-01.png"><img src="/pix/ssh-01.png" alt="View Console"></a></figure>
+
+<p>Log in through there, and disable ufw by typing:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw disable
+</span></span></code></pre></div><h2 id="further-reading">Further Reading</h2>
+<ul>
+<li><code>man ufw</code> 👈</li>
+<li><a href="https://wiki.ubuntu.com/UncomplicatedFirewall">Ubuntu Wiki:
+UncomplicatedFirewall</a></li>
+<li><a href="https://help.ubuntu.com/community/Gufw">Gufw (Graphical UFW)</a></li>
+</ul>
+<p><strong>Contributor</strong> - <a href="https://shunter.xyz">shunter.xyz</a></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

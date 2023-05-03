@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Ejabberd | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Ejabberd is a server for the XMPP protocol written in Erlang. It&rsquo;s more scalable, and easier to setup than Prosody due to having most of its modules built-in and pre-configured by default.
+Prerequisites Subdomains Ejabberd presumes that you have already created all the required and optional subdomains for its operation prior to running it.
+Depending on the usecase, you may need any or all of the following domains for XMPP functionality:">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/ejabberd.png" class=titleicon>ejabberd</h1></header>
+<article>
+<p><a href="https://ejabberd.im">Ejabberd</a> is a server for the XMPP protocol written in Erlang. It&rsquo;s more scalable, and easier to setup than <a href="/prosody">Prosody</a> due to having most of its modules built-in and pre-configured by default.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<h3 id="subdomains">Subdomains</h3>
+<p>Ejabberd presumes that you have already created all the <strong>required and optional subdomains</strong> for its operation prior to running it.</p>
+<p>Depending on the usecase, you may need any or all of the following domains for XMPP functionality:</p>
+<ul>
+<li><strong>example.org</strong> - Your XMPP hostname</li>
+<li><strong>conference.example.org</strong> - For Multi User Chats (MUCs)</li>
+<li><strong>upload.example.org</strong> - For file upload support</li>
+<li><strong>proxy.example.org</strong> - For SOCKS5 proxy support</li>
+<li><strong>pubsub.example.org</strong> - For publish-subscribe support (A fancier RSS)</li>
+</ul>
+<p>This guide will assume <strong>all these subdomains</strong> have been created.</p>
+<h4 id="custom-subdomains">Custom Subdomains</h4>
+<p>If you wish to customize any of these domains, edit <code>/etc/ejabberd.yml</code> and under every appropriate module that needs a subdomain, add the following setting:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">mod_muc</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">host</span>: <span style="color:#ae81ff"><mark>muc.example.org</mark></span>
+</span></span></code></pre></div><h2 id="installation">Installation</h2>
+<p>To get the latest version of ejabberd, you need to first setup the ejabberd apt repositories:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>curl -o /etc/apt/sources.list.d/ejabberd.list https://repo.process-one.net/ejabberd.list
+</span></span><span style="display:flex;"><span>curl -o /etc/apt/trusted.gpg.d/ejabberd.gpg https://repo.process-one.net/ejabberd.gpg
+</span></span></code></pre></div><p>Then update the repositories and install the <code>ejabberd</code> package:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt update
+</span></span><span style="display:flex;"><span>apt install ejabberd
+</span></span></code></pre></div><h2 id="configuration">Configuration</h2>
+<p>The ejabberd server is configured in <code>/etc/ejabberd/ejabberd.yml</code>.
+Changes are only applied by restarting the ejabberd daemon in systemd:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart ejabberd
+</span></span></code></pre></div><h3 id="hostnames">Hostnames</h3>
+<p>The <strong>XMPP hostname</strong> is specified in the <code>hosts</code> section of
+<code>ejabberd.yml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">hosts</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#ae81ff"><mark>example.org</mark></span>
+</span></span></code></pre></div><h3 id="certificates">Certificates</h3>
+<p>Unlike <a href="https://prosody.im">Prosody,</a> ejabberd doesn't come equipped
+with a script that can automatically copy over the relevant certificates
+to a directory where the ejabberd user can read them.</p>
+<p>One way of organizing certificates for ejabberd is to have them stored
+in <code>/etc/ejabberd/certs</code>, with each domain having a separate directory
+for both the fullchain cert and private key.</p>
+<p>Using certbot, this process can be easily automated with these commands:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>DOMAIN<span style="color:#f92672">=</span><mark>example.org</mark>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># Set the domain names you want here</span>
+</span></span><span style="display:flex;"><span>declare -a subdomains<span style="color:#f92672">=(</span><span style="color:#e6db74">&#34;&#34;</span> <span style="color:#e6db74">&#34;conference.&#34;</span> <span style="color:#e6db74">&#34;proxy.&#34;</span> <span style="color:#e6db74">&#34;pubsub.&#34;</span> <span style="color:#e6db74">&#34;upload.&#34;</span><span style="color:#f92672">)</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">for</span> i in <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">${</span>subdomains[@]<span style="color:#e6db74">}</span><span style="color:#e6db74">&#34;</span>; <span style="color:#66d9ef">do</span>
+</span></span><span style="display:flex;"><span>    certbot --nginx -d $i$DOMAIN certonly
+</span></span><span style="display:flex;"><span>    mkdir -p /etc/ejabberd/certs/$i$DOMAIN
+</span></span><span style="display:flex;"><span>    cp /etc/letsencrypt/live/$i$DOMAIN/fullchain.pem /etc/ejabberd/certs/$i$DOMAIN
+</span></span><span style="display:flex;"><span>    cp /etc/letsencrypt/live/$i$DOMAIN/privkey.pem /etc/ejabberd/certs/$i$DOMAIN
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></div><p><em>Note: Just like with Prosody, you might want to write this script to a file and setup a <a href="/cron">cronjob</a> to run it periodically. This should help prevent your certificates from expiring.</em></p>
+<p>Make sure all the certificates are readable by the <code>ejabberd</code> user:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chown -R ejabberd:ejabberd /etc/ejabberd/certs
+</span></span></code></pre></div><p>To enable the use of all these certificates in ejabberd, the following
+configuration is necessary:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">certfiles</span>:
+</span></span><span style="display:flex;"><span>  - <span style="color:#e6db74">&#34;/etc/ejabberd/certs/*/*.pem&#34;</span>
+</span></span></code></pre></div><h3 id="admin-user">Admin User</h3>
+<p>The <strong>admin user</strong> can be specified in <code>ejabberd.yml</code> under the <code>acl</code>
+section:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">acl</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">admin</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">user</span>: <span style="color:#ae81ff">admin</span>
+</span></span></code></pre></div><p>This would make <strong><a href="mailto:admin@example.org">admin@example.org</a></strong> the user with administrator
+privileges.</p>
+<h3 id="file-uploads">File Uploads</h3>
+<p>To ensure full compliance with XMPP standards, add the following configuration to <code>mod_http_upload</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">mod_http_upload</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">put_url</span>: <span style="color:#ae81ff">https://@HOST@:5443/upload</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">docroot</span>: <span style="color:#ae81ff"><mark>/var/www/upload</mark></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">custom_headers</span>:
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Access-Control-Allow-Origin&#34;: </span><span style="color:#e6db74">&#34;https://@HOST@&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Access-Control-Allow-Methods&#34;: </span><span style="color:#e6db74">&#34;GET,HEAD,PUT,OPTIONS&#34;</span>
+</span></span><span style="display:flex;"><span>      <span style="color:#f92672">&#34;Access-Control-Allow-Headers&#34;: </span><span style="color:#e6db74">&#34;Content-Type&#34;</span>
+</span></span></code></pre></div><p>Make sure to create and give the <code>ejabberd</code> user ownership of <code>/var/www/upload</code> or any other directory you choose to use for file uploads:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chown -R ejabberd:ejabberd /var/www/upload
+</span></span></code></pre></div><h3 id="message-archives">Message Archives</h3>
+<p>The ejabberd server supports keeping archives of messages through its <code>mod_mam</code> module. This can be enabled by uncommenting the following lines:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">mod_mam</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">assume_mam_usage</span>: <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">default</span>: <span style="color:#ae81ff">always</span>
+</span></span></code></pre></div><h2 id="database">Database</h2>
+<h3 id="why-use-a-database">Why use a database?</h3>
+<p>We can find the following comment in the <code>mod_mam</code> section of <code>/etc/ejabberd.yml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">mod_mam</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">## Mnesia is limited to 2GB, better to use an SQL backend</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">## For small servers SQLite is a good fit and is very easy</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">## to configure. Uncomment this when you have SQL configured:</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">## db_type: sql</span>
+</span></span></code></pre></div><p>As these comments imply, an <strong>SQL backend</strong> is strongly recommended if you wish to use your ejabberd server for anything more than just testing. Ejabberd supports <strong>MySQL, SQLite</strong> and <strong>PostgreSQL.</strong> For the purpose of efficiency, this guide will use <strong>PostgresSQL</strong> because other server software like <a href="/matrix">Matrix</a> and <a href="/peertube">PeerTube</a> support it.</p>
+<h3 id="installing-postgresql">Installing PostgreSQL</h3>
+<p>PostgreSQL is available in the Debian repositories:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install postgresql
+</span></span></code></pre></div><p>Start the PostgreSQL daemon to begin using it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl start postgresql
+</span></span></code></pre></div><h3 id="creating-the-database">Creating the Database</h3>
+<p>To create the database, first create a PostgreSQL user for ejabberd:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;createuser --pwprompt ejabberd&#34;</span> postgres
+</span></span></code></pre></div><p>Then, create the database and make <code>ejabberd</code> its owner:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;psql -c &#39;CREATE DATABASE ejabberd OWNER ejabberd;&#39;&#34;</span> postgres
+</span></span></code></pre></div><h3 id="importing-database-scheme">Importing Database Scheme</h3>
+<p>Ejabberd does <strong>not</strong> create the database scheme by default; It has to be imported into the database before use.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;curl -s https://raw.githubusercontent.com/processone/ejabberd/master/sql/pg.sql | psql ejabberd&#34;</span> postgres
+</span></span></code></pre></div><h3 id="configuring-ejabberd-to-use-postgresql">Configuring ejabberd to use PostgreSQL</h3>
+<p>Finally, add the following configuration to <code>ejabberd.yml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">sql_type</span>: <span style="color:#ae81ff">pgsql</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">sql_server</span>: <span style="color:#e6db74">&#34;localhost&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">sql_database</span>: <span style="color:#e6db74">&#34;<mark>ejabberd</mark>&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">sql_username</span>: <span style="color:#e6db74">&#34;<mark>ejabberd</mark>&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">sql_password</span>: <span style="color:#e6db74">&#34;<mark>psql_password</mark>&#34;</span>
+</span></span></code></pre></div><p>Once you&rsquo;ve ensured your database name, username and password are all correct, enable SQL storage for <code>mod_mam</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#f92672">mod_mam</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e">## (Other parameters above)</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">db_type</span>: <span style="color:#ae81ff">sql</span>
+</span></span></code></pre></div><h2 id="using-ejabberd">Using ejabberd</h2>
+<h3 id="registering-the-admin-user">Registering the Admin User</h3>
+<p>To begin using ejabberd, firstly start the ejabberd daemon:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart ejabberd
+</span></span></code></pre></div><p>Then, using <code>ejabberdctl</code> as the ejabberd user, register the admin user which is set in <code>ejabberd.yml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;ejabberdctl register <mark>admin example.org password</mark>&#34;</span> ejabberd
+</span></span></code></pre></div><p>This will create the user <strong><a href="mailto:admin@example.org">admin@example.org</a>.</strong></p>
+<h3 id="using-the-web-interface">Using the Web Interface</h3>
+<p>By default, ejabberd has a web interface accessible from <strong><a href="http://example.org:5280/admin">http://example.org:5280/admin</a></strong>. When accessing this interface, you will be prompted for the admin credentials:</p>
+
+<figure ><img src="/pix/ejabberd-login.webp"></figure>
+
+<p>After signing in with the admin credentials, you will be able to manage
+your ejabberd server from this web interface:</p>
+
+<figure ><img src="/pix/ejabberd-admin.webp"></figure>
+
+<h2 id="turn--stun-for-calls">TURN &amp; STUN for Calls</h2>
+<p>Ejabberd supports the <strong>TURN</strong> and <strong>STUN</strong> protocols to allow internet users behind NATs to perform voice and video calls with other XMPP users. <strong>This is enabled by default using <a href="https://docs.ejabberd.im/admin/configuration/listen#ejabberd-stun-1">ejabberd_stun</a>.</strong></p>
+<p><strong>However,</strong> if you plan on running ejabberd alongside <strong>other applications</strong> that require TURN and STUN, such as Matrix, then you&rsquo;ll have to setup your own external TURN server using Coturn.</p>
+<h3 id="setup-with-coturn-and-mod_stun_disco">Setup with Coturn and <code>mod_stun_disco</code></h3>
+<p>Firstly, setup a TURN and STUN server with <a href="/coturn">Coturn,</a> using an <strong>authentication secret.</strong></p>
+<p>Then, edit <code>mod_stun_disco</code> to contain the appropriate information for
+your turnserver:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span>  <span style="color:#f92672">mod_stun_disco</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">secret</span>: <span style="color:#e6db74">&#34;<mark>your_auth_secret</mark>&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">services</span>:
+</span></span><span style="display:flex;"><span>      -
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">host</span>: <span style="color:#ae81ff"><mark>turn.example.org</mark></span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">type</span>: <span style="color:#ae81ff">stun</span>
+</span></span><span style="display:flex;"><span>      -
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">host</span>: <span style="color:#ae81ff"><mark>turn.example.org</mark></span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">type</span>: <span style="color:#ae81ff">turn</span>
+</span></span></code></pre></div><h2 id="further-configuration">Further Configuration</h2>
+<p>For a deeper look into all the modules and options, have a look at the following ejabberd documentation:</p>
+<ul>
+<li>Ejabberd&rsquo;s <a href="https://docs.ejabberd.im/admin/configuration/listen/">Listen Modules</a> and <a href="https://docs.ejabberd.im/admin/configuration/listen-options/">Listen Options</a></li>
+<li>Ejabberd&rsquo;s <a href="https://docs.ejabberd.im/admin/configuration/toplevel/">Top-Level Options</a></li>
+<li>Ejabberd&rsquo;s <a href="https://docs.ejabberd.im/admin/configuration/modules/">Modules&rsquo; Options</a></li>
+</ul>
+<p><em>And with that, you&rsquo;ve successfully setup your ejabberd XMPP server!</em></p>
+<hr>
+<p>Written by <a href="https://denshi.org">Denshi.</a>
+Donate Monero at:
+<code>48dnPpGgo8WernVJp5VhvhaX3u9e46NujdYA44u8zuMdETNC5jXiA9S7JoYMM6qRt1ZcKpt1J3RZ3JPuMyXetmbHH7Mnc9C</code></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

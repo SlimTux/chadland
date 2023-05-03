@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Prosody | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="XMPP is a fantastically simple protocol that&rsquo;s usually used as a messenger. It&rsquo;s highly extensible, better than IRC, lighter and more decentralized than Matrix, and normie social media like Telegram can&rsquo;t hold a candle to it.
+XMPP is so decentralized and extensible that there are many different XMPP servers. Here, let&rsquo;s set up a Prosody XMPP server.
+Installation To install Prosody, first add the official Prosody repositories for Debian:
+# Install extrepo if you already haven&#39;t apt install extrepo extrepo enable prosody apt update Then, install Prosody:">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/prosody.svg" class=titleicon>Prosody</h1></header>
+<article>
+<p>XMPP is a fantastically simple protocol that&rsquo;s usually used as a messenger. It&rsquo;s highly extensible, better than IRC, lighter and more decentralized than Matrix, and normie social media like Telegram can&rsquo;t hold a candle to it.</p>
+<p>XMPP is so decentralized and extensible that there are many <a href="/ejabberd"><em>different</em></a> XMPP servers. Here, let&rsquo;s set up a <a href="https://prosody.im/">Prosody</a> XMPP server.</p>
+<h2 id="installation">Installation</h2>
+<p>To install Prosody, first add the official Prosody repositories for Debian:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e"># Install extrepo if you already haven&#39;t</span>
+</span></span><span style="display:flex;"><span>apt install extrepo
+</span></span><span style="display:flex;"><span>extrepo enable prosody
+</span></span><span style="display:flex;"><span>apt update
+</span></span></code></pre></div><p>Then, install Prosody:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install prosody
+</span></span></code></pre></div><h2 id="configuration">Configuration</h2>
+<p>The Prosody configuration file is in <code>/etc/prosody/prosody.cfg.lua</code>. To set it all up, we will be changing several things.</p>
+<h3 id="setting-admins">Setting Admins</h3>
+<p>Let&rsquo;s go ahead and set who our admin(s) will be. Find the line that says <code>admins = { }</code> and to this we can specify one or more server admins.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#75715e"># To add one admin:</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">admins</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">{ &#34;chad@example.org&#34; }</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># We can add more than one by separating them by commas. (This file is written in Lua.)</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">admins</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">{ &#34;chad@example.org&#34;, &#34;chadmin@example.org&#34; }</span>
+</span></span></code></pre></div><p>Note that we have not created these accounts yet, we will do this <a href="#user">below</a>.</p>
+<h3 id="set-the-server-url">Set the Server URL</h3>
+<p>Find the line <code>VirtualHost &quot;localhost&quot;</code> and replace <code>localhost</code> with your domain. In our case, we will have <code>VirtualHost &quot;example.org&quot;</code></p>
+<h3 id="multi-user-chats">Multi-User Chats</h3>
+<p>Most people will probably want the ability to have chats with more than two users. This is easily enough to enable. In the config file, add the following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">Component &#34;chat.example.org&#34; &#34;muc&#34;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#a6e22e">modules_enabled</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">{ &#34;muc_mam&#34; }
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    restrict_room_creation = &#34;admin&#34;</span>
+</span></span></code></pre></div><p>On the first line, you must have a separate subdomain for your multi-user chats. I use the <code>chat.</code> subdomain, but some use <code>muc.</code>. Anything is possible.</p>
+<p>The second line is important because it prevents non-admins from creating and squatting rooms on your server. The only situation where you might not want that is if you indend to open a general public chat system for people you don&rsquo;t know.</p>
+<p>Read more about the <code>muc</code> plugin on the Prosody documentation page <a href="https://prosody.im/doc/modules/mod_muc">here</a>.</p>
+<h3 id="enabling-chat-histories">Enabling chat histories</h3>
+<p>By default, Prosody will send out messages received only to the first available clients.
+That means that if you have your desktop client turned off and your cell phone receives a message,
+it will <em>not</em> be available to the desktop client when you start it.</p>
+<p>While this may be preferred in some cases,
+enable the <code>mam</code> module (Message Archive Management) to have the server hold on messages and sync them to all clients.</p>
+<p>Within the <code>modules_enabled</code> block, you can uncomment the <code>mam</code> line to enable it.
+You can see other settings for this module <a href="https://prosody.im/doc/modules/mod_mam">here</a>
+like, for example, how long a server should hold on to message histories for synching.</p>
+<p>Note also that Prosody comes with the <code>carbons</code> activated module by default, which is related.
+This will send received messages to <em>all</em> active clients (your phone and desktop),
+although it will not save messages like MAM for clients not online or to be added later.</p>
+<h3 id="file-sharing">File sharing</h3>
+<p>With this we can bring XMPP to the level of other popular instant messaging applications like Matrix and whatsapp.
+It is extremely easy to setup.
+This part is optional, but it can make XMPP more normie-friendly if you plan on moving family members and friends over to XMPP.</p>
+<p>First we need to install extra prosody modules. Run the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install prosody-modules
+</span></span></code></pre></div><p>Then we can add the following line to you prosody config file to enable file uploads:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">Component &#34;uploads.example.org&#34; &#34;http_upload&#34;</span>
+</span></span></code></pre></div><p>As you will notice, you need another subdomain for this. We will add an ssl certficate for this later.</p>
+<p>You will also need to go back to <code>modules_enabled</code> and uncomment the <code>http_files</code> module.
+This is used to actually serve the files to users.</p>
+<p>And the last part of the setup is to enable the built in proxy server.
+This helps with file transfers for devices behind a NAT, and unless you are using XMPP in a LAN, you probably need this.
+Enable the proxy by adding the following line to the config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">Component &#34;proxy.example.org&#34; &#34;proxy65&#34;</span>
+</span></span></code></pre></div><p>As you can see, another subdomain is needed. We will add ssl certificates for this later.</p>
+<p>At this point, file sharing is now setup and ready to be used. Although there are some concerns that should be addressed.</p>
+<p>A big concern with file sharing is large files, seeing as all files shared over XMPP will be stored on your server. This can become a problem when many (and large) files are being shared. We can put a cap on large files by adding the following line to our config:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">http_upload_file_size_limit</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">20971520</span>
+</span></span></code></pre></div><p>This puts a 20MB cap on all files being shared. The value is specified in bytes. You can also specify after how long files should be deleted by adding the following line:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">http_upload_expire_after</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">60 * 60 * 24 * 7</span>
+</span></span></code></pre></div><p>The value is specified in seconds. The above line will make prosody delete files after a week.</p>
+<p>If it is for some reason neccessary, you can also manually invoke expiry with the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">prosodyctl mod_http_upload expire</span>
+</span></span></code></pre></div><h3 id="database-setup">Database Setup</h3>
+<p>Prosody includes the <code>internal</code> and <code>sql</code> storage backends by default. If you wish to run Prosody with PostgreSQL, edit the following lines:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cfg" data-lang="cfg"><span style="display:flex;"><span><span style="color:#a6e22e">storage</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;sql&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">sql</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">{
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    driver = &#34;PostgreSQL&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    database = &#34;<mark>prosody</mark>&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    username = &#34;<mark>prosody</mark>&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    password = &#34;<mark>password</mark>&#34;,
+</span></span></span><span style="display:flex;"><span><span style="color:#e6db74">    host = &#34;localhost&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">}</span>
+</span></span></code></pre></div><p>(This is assuming you&rsquo;ve installed the <code>postgresql</code> package, and setup a database named <code>prosody</code> with a user named <code>prosody</code> as the owner.)</p>
+<h3 id="other-things-to-check">Other things to check</h3>
+<p>Check the config file for other settings you might want to change. For example, if you want to run a general public XMPP server, you can allow anyone to create an account by changing <code>allow_registration</code> to <code>true</code>.</p>
+<p>Another thing you can do is enable the <code>csi_simple</code> module, which will add some optimizations for mobile devices.</p>
+<p>Another thing worth noting is the <code>archive_expires_after = &quot;1w&quot;</code> line. This specifies after how long message archives will be deleted.</p>
+<p>Also the <code>smacks</code> module helps a lot with slow internet connections.</p>
+<h2 id="certificates">Certificates</h2>
+<p>Obviously, we want to have client-to-server and server-to-server encryption. Nowadays, use can use Certbot to generate certificates and use a convenient command below <code>prosodyctl</code> to import them.</p>
+<p><strong>If you have multi-user chat enabled, be sure to get a certificate for that subdomain as well.</strong> Include the <code>--nginx</code> option assuming you have an Nginx server running.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot -d chat.example.org --nginx
+</span></span></code></pre></div><p><strong>If you have file sharing enabled, be sure to get a certificate for those subdomains as well.</strong></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot -d uploads.example.org --nginx
+</span></span><span style="display:flex;"><span>certbot -d proxy.example.org --nginx
+</span></span></code></pre></div><p>Once you have the certificates for encryption, run the following to import them into Prosody.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>prosodyctl --root cert import /etc/letsencrypt/live/
+</span></span></code></pre></div><p>Note that you might get an error that a certificate has not been found if your <code>muc</code> subdomain and your main domain share a certificate. It should still work, this is just notifying you that no specific certificate for the subdomain.</p>
+<p><strong>Note:</strong> The above command will need to be rerun when certificates are renewed. You may want to create a <a href="/cron">cronjob</a> to have this done automatically.</p>
+<h2 id="user">Creating users/admins manually</h2>
+<p>Let&rsquo;s manually create the admin user we prepared for above. Note that you can indeed do this in your XMPP client if you have not disabled registration, but this is how it is done on the command line:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>prosodyctl adduser chad@example.org
+</span></span></code></pre></div><p>This will prompt you to create a password as well.</p>
+<h2 id="make-changes-active">Make changes active</h2>
+<p>With any system service, use <code>systemctl reload</code> or <code>systemctl restart</code> to make the new settings active:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart prosody
+</span></span></code></pre></div><h2 id="using-your-server">Using your Server!</h2>
+<p>Once your server is set up, you just need an XMPP client to use your new and secure chat system.</p>
+<ul>
+<li>GNU/Linux: <a href="https://dino.im/">Dino</a> or <a href="https://gajim.org/">Gajim</a></li>
+<li>Windows: <a href="https://gajim.org/">Gajim</a> also runs on Windows.</li>
+<li>Android: <a href="https://conversations.im/">Conversations.im</a> or
+<a href="https://snikket.org/">snikket</a></li>
+<li>Mac/iOS: <a href="https://monal.im/">Monal IM</a> or
+<a href="https://siskin.im/">Siskin</a> for iOS alone</li>
+<li>command-line (GNU/Linux, MacOS, Windows):
+<a href="https://profanity-im.github.io/">Profanity</a></li>
+<li><a href="https://xmpp.org/software/clients.html">See a more complete list kept by
+XMPP</a></li>
+</ul>
+<p>Install whichever of these clients you want on your computer or phone and you can log into your new XMPP server with the account you made. Note that if you enabled public registration, anyone can create an account on your server through one of these clients.</p>
+<h3 id="account-addresses">Account addresses</h3>
+<p>XMPP account addressed look just like email addresses: <code>username@example.org</code>. You can message any account on any XMPP server on the internet with that format.</p>
+<h3 id="note-on-mucs-multi-user-chats">Note on MUCs (multi-user chats)</h3>
+<p>Remember that MUCs are kept on a separate subdomain that we created and should&rsquo;ve gotten a certificate for above, for example, <code>chat.example.org</code>. Chatrooms are created and referred to in the following format: <code>#chatroomname@chat.example.org</code>.</p>
+<h3 id="note-on-firewalls-and-opening-ports">Note on firewalls and opening ports</h3>
+<p>If you use a firewall, you should open ports 5222 and 5281. The first one is needed for clients to be able to connect to your server. The second is only necessary if you are using the <code>http_upload</code> module for file sharing.</p>
+<p>A complete list of ports used by Prosody can be found <a href="https://prosody.im/doc/ports">here</a>.</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

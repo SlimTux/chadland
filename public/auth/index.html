@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Requiring Passwords for Webpages (HTTP Authentication) | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="HTTP basic authentication will allow you to secure parts (or all) of your website with a username and password without the trouble of PHP or Javascript. This will work with any Nginx server.
+Installation We will be using the command htpasswd to make username and password pairs.
+apt install apache2-utils The apache utils include a small username-password pair encryption tool.
+Like the other tutorials on this site, this tutorial is for Nginx, not for Apache servers.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Requiring Passwords for Webpages (HTTP Authentication)</h1></header>
+<article><img src="/pix/auth.svg" class=titleimg>
+<p>HTTP basic authentication will allow you to secure parts (or all) of
+your website with a username and password without the trouble of PHP or
+Javascript. This will work with any Nginx server.</p>
+<h2 id="installation">Installation</h2>
+<p>We will be using the command <code>htpasswd</code> to make username and password
+pairs.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install apache2-utils
+</span></span></code></pre></div><p>The apache utils include a small username-password pair encryption tool.</p>
+<p>Like the other tutorials on this site, this tutorial is for Nginx,
+<strong>not</strong> for Apache servers.</p>
+<p>Now think of a username and password and remember them.</p>
+<pre><code>htpasswd -c /etc/nginx/myusers username
+</code></pre>
+<p>The <code>-c</code> flag creates a file. You can make the path of this file
+anywhere outside of your webroot.</p>
+<p>Obviously the username is up to you as well.</p>
+<p>Type out your password twice to confirm. You can do this as many times
+as you'd like.</p>
+<p>Check out user name password pairs (the password will be securely
+hashed):</p>
+<pre><code>cat /etc/nginx/myusers
+</code></pre>
+<h2 id="nginx-config-and-auth-basic">Nginx Config and Auth Basic</h2>
+<p>From here, we are going to edit our websites config file in
+<code>/etc/nginx/sites-enabled</code>. Have in mind which folder you'd like to
+secure. Add something like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/secret-folder</span>  {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">auth_basic</span> <span style="color:#e6db74">&#34;What&#39;s</span> <span style="color:#e6db74">the</span> <span style="color:#e6db74">Password?&#34;</span> ;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">auth_basic_user_file</span> <span style="color:#e6db74">/etc/nginx/myusers</span> ;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h4 id="huh">Huh?</h4>
+<p>If you're stuck, try finding the line <code>location / {</code></p>
+<p>Just below this block is where you should add the custom location block</p>
+<p>If you'd like to do the opposite, such as making the entire site
+private except for a public section, do this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">auth_basic</span> <span style="color:#e6db74">&#34;What&#39;s</span> <span style="color:#e6db74">the</span> <span style="color:#e6db74">Password?&#34;</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">auth_basic_user_file</span> <span style="color:#e6db74">/etc/nginx/myusers</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/public/</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#f92672">auth_basic</span> <span style="color:#66d9ef">off</span> ;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h3 id="ip-addresses">IP Addresses</h3>
+<p>If passwords aren't enough we can ban an ip or accept one.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">location</span> <span style="color:#e6db74">/api</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">allow</span> 192.168.1.23:<span style="color:#ae81ff">8080</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">deny</span> <span style="color:#ae81ff">127</span><span style="color:#e6db74">.0.0.1</span> ;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>If you want to check both a username and password with an ip address,
+use the <code>satisfy</code> directive.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">location</span> <span style="color:#e6db74">/api</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">satisfy</span> <span style="color:#e6db74">all</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">allow</span> 192.168.1.23:<span style="color:#ae81ff">8080</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">deny</span> <span style="color:#ae81ff">127</span><span style="color:#e6db74">.0.0.1</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">auth_basic</span> <span style="color:#e6db74">&#34;What&#39;s</span> <span style="color:#e6db74">the</span> <span style="color:#e6db74">Password?&#34;</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">auth_basic_user_file</span> <span style="color:#e6db74">/etc/nginx/myusers</span> ;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="complete-example">Complete Example</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">http</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">root</span> <span style="color:#e6db74">/var/www/website</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">#...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/secret-folder</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">satisfy</span> <span style="color:#e6db74">all</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">allow</span> <span style="color:#ae81ff">192</span><span style="color:#e6db74">.168.1.3/24</span>;
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">deny</span> <span style="color:#ae81ff">127</span><span style="color:#e6db74">.0.0.1</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">auth_basic</span> <span style="color:#e6db74">&#34;What&#39;s</span> <span style="color:#e6db74">the</span> <span style="color:#e6db74">Password?&#34;</span> ;
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">auth_basic_user_file</span> <span style="color:#e6db74">/etc/nginx/myusers</span> ;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Now check your configuration with <code>nginx -t</code></p>
+<p>Reload nginx and you're good to go!</p>
+<p><strong>Contributor</strong> - <a href="https://tomfasano.net">tomfasano.net</a></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

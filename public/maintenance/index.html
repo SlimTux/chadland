@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Maintaining a Server | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Here are some important topics you should be familiar with whenever you are managing a server.
+Keep packages up to date. All GNU/Linux distributions use package managers to easily be able to install and update packages without manually downloading them. On Debian, which we use here for these tutorial the package manager is apt-get or apt for short.
+It&#39;s a good idea to use apt to keep your software reasonably up to date.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Maintaining a Server</h1></header>
+<article>
+<p>Here are some important topics you should be familiar with whenever you
+are managing a server.</p>
+<h2 id="update">Keep packages up to date.</h2>
+<p>All GNU/Linux distributions use package managers to easily be able to
+install and update packages without manually downloading them. On
+Debian, which we use here for these tutorial the package manager is
+<code>apt-get</code> or <code>apt</code> for short.</p>
+<p>It's a good idea to use <code>apt</code> to keep your software reasonably up to
+date.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt update
+</span></span><span style="display:flex;"><span>apt upgrade
+</span></span></code></pre></div><p>Not only do up-to-date packages often come with more features, but they
+can also fix any possible security bugs.</p>
+<h2 id="troubleshooting-general-problems">Troubleshooting general problems</h2>
+<p>Often when you are installing something new, you might miss a step and
+run into an error, so it's important to know how to check and see what
+errors have happened on your computer.</p>
+<p>On Debian and other GNU/Linux distributions that use systemd (most of
+them), you can use the command <code>journalctl</code> to look at the system's
+general log. You will probably want to run <code>journalctl -xe</code> as the <code>-x</code>
+and <code>-e</code> as that gives the most information and starts you at the bottom
+of the log to see the most recent errors.</p>
+<p>Some programs do not use this system log, but have their own logs stored
+in <code>/var/log/</code>, or sometimes it's more convenient to look at a specific
+program's log to see only its issues.</p>
+<p>For example, we can see that in <code>/var/log/nginx/</code>, nginx produces both
+<code>error</code> and <code>access</code> files. The <code>access</code> files show you all the times
+people connect to files on your server and much more. We can look at the
+most recent errors by running:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>tail -n <span style="color:#ae81ff">25</span> /var/log/nginx/error.log
+</span></span></code></pre></div><p>The command <code>tail -n 25</code> means &quot;show me the last 25 lines of this
+file.&quot; You can replace that with <code>less</code> to browse the whole file. In
+<code>less</code>, navigate with arrows or vim-keys and exit with <code>q</code>.</p>
+<h3 id="systemctl">systemctl</h3>
+<p>Another tool on systemd distributions is <code>systemctl</code>. At a basic level,
+use <code>systemctl status put-service-name-here</code> to see if a system service
+is running and its most recent log. But there's much more to
+<code>systemctl</code>.</p>
+<p>For example, you can run <code>systemctl stop nginx</code> to stop NginX and
+<code>systemctl start nginx</code> to start it back up (or use <code>restart</code> for both).
+When you make changes to a program's configuration files, <code>reload</code> well
+make them reload them. If you no longer want a service to start when the
+system is rebooted, use <code>disable</code>, or conversely, to make a service
+start on reboot use <code>enable</code>.</p>
+<h2 id="finding-files">Finding Files</h2>
+<p>Especially if you're new to how a GNU/Linux system is arranged, you
+might need help finding files. To find program-related files, you can
+just use <code>whereis</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>$ whereis nginx
+</span></span><span style="display:flex;"><span>nginx: /usr/sbin/nginx /usr/lib/nginx /etc/nginx /usr/share/nginx /usr/share/man/man8/nginx.8.gz
+</span></span></code></pre></div><p>This command lists the directories related to that program. For example,
+<code>/etc/nginx</code> is where the configuration files are and <code>/usr/share/nginx</code>
+is where the library and module-like files are.</p>
+<p>But <code>whereis</code> can be used only with installed programs. A more general
+tool is the pair of <code>updatedb</code> and <code>locate</code>.</p>
+<p><code>updatedb</code> is a command that quickly indexes every file and directory on
+your computer. Then you can run <code>locate</code> to find a file containing a
+given name. After running <code>updatedb</code>, try running <code>locate nginx</code> to find
+all files with &quot;nginx&quot; in their name.</p>
+<p>You can make your search more specific by chaining other Unix commands
+through pipes. For example, <code>grep</code> takes input and returns only lines
+that match an extra argument. In the example below, we <code>locate</code> all
+files with &quot;nginx&quot; in the name, but we use <code>grep</code> to only show us
+those with the word &quot;available&quot; in them.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>root@landchad:~# locate nginx | grep available
+</span></span><span style="display:flex;"><span>/etc/nginx/modules-available
+</span></span><span style="display:flex;"><span>/etc/nginx/sites-available
+</span></span><span style="display:flex;"><span>/etc/nginx/sites-available/default
+</span></span><span style="display:flex;"><span>/etc/nginx/sites-available/landchad
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-auth-pam.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-dav-ext.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-echo.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-geoip.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-image-filter.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-subs-filter.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-upstream-fair.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-http-xslt-filter.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-mail.conf
+</span></span><span style="display:flex;"><span>/usr/share/nginx/modules-available/mod-stream.conf
+</span></span></code></pre></div><p><code>updatedb</code> is an ideal candidate for a <a href="/cron">cronjob</a> so you
+don't have to worry about running each time. For example, adding the
+following to your crontab will run <code>updatedb</code> every 30 minutes:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>*/30 * * * * /usr/bin/updatedb
+</span></span></code></pre></div></article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

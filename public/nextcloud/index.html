@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Nextcloud | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="What is Nextcloud? Nextcloud is a free and open source solution for cloud storage. However it can also do other things, such as manage your email, notes, calender, tasks, and can even connect to the Fediverse (think Mastodon and Pleroma). Pretty much every service that Google has to offer has a much better alternative as a Nextcloud app and this is a must-have for anyone wanting to get away from Google services but still wants a traditional cloud experience (in the likes of Google Services, anyways).">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/nextcloud.svg" class=titleicon>Nextcloud</h1></header>
+<article>
+<h2 id="whatis">What is Nextcloud?</h2>
+<p><a href="https://nextcloud.com"><img src="/pix/nextcloud.svg" alt="">Nextcloud</a>
+is a free and open source solution for cloud storage. However it can
+also do other things, such as manage your email, notes, calender, tasks,
+and can even connect to the Fediverse (think Mastodon and Pleroma).
+Pretty much every service that Google has to offer has a much better
+alternative as a Nextcloud app and this is a must-have for anyone
+wanting to get away from Google services but still wants a traditional
+cloud experience (in the likes of Google Services, anyways).</p>
+<h2 id="dependencies">Dependencies</h2>
+<p>First, we install the dependencies:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install -y nginx python3-certbot-nginx mariadb-server php7.4 php7.4-<span style="color:#f92672">{</span>fpm,bcmath,bz2,intl,gd,mbstring,mysql,zip,xml,curl<span style="color:#f92672">}</span>
+</span></span></code></pre></div><p><em>Optionally</em>, you can improve the performance of your Nextcloud server by adjusting the child processes that are used to execute PHP scripts. That way, more PHP scripts can be executed at once. Make the following adjustments to <code>/etc/php/7.4/fpm/pool.d/www.conf</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-systemd" data-lang="systemd"><span style="display:flex;"><span><span style="color:#a6e22e">pm </span><span style="color:#f92672">=</span><span style="color:#e6db74"> dynamic</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pm.max_children </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 120</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pm.start_servers </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 12</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pm.min_spare_servers </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 6</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">pm.max_spare_servers </span><span style="color:#f92672">=</span><span style="color:#e6db74"> 18</span>
+</span></span></code></pre></div><p>Start the MariaDB server:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl enable mariadb --now
+</span></span></code></pre></div><h3 id="setting-up-a-sql-database">Setting up a SQL Database</h3>
+<p>Next, we need to set up our SQL database by running a Secure
+Installation and creating the tables that will store data that Nextcloud
+will need. Run the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mysql_secure_installation
+</span></span></code></pre></div><p>We can say &ldquo;Yes&rdquo; to the following questions, and can input a root password.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>Switch to unix_socket authentication <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y
+</span></span><span style="display:flex;"><span>Change the root password? <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y	<span style="color:#75715e"># Input a password.</span>
+</span></span><span style="display:flex;"><span>Remove anonymous users? <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y
+</span></span><span style="display:flex;"><span>Disallow root login remotely? <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y
+</span></span><span style="display:flex;"><span>Remove test database and access to it? <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y
+</span></span><span style="display:flex;"><span>Reload privilege tables now? <span style="color:#f92672">[</span>Y/n<span style="color:#f92672">]</span>: Y
+</span></span></code></pre></div><p>Next, sign into the SQL database with the new and secure password you
+chose before. Run the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mysql -u root -p
+</span></span></code></pre></div><p>We need to create a database for Nextcloud. Follow the instructions
+below and change some of the placeholders as you wish:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-mysql" data-lang="mysql"><span style="display:flex;"><span><span style="color:#66d9ef">CREATE</span> <span style="color:#66d9ef">DATABASE</span> nextcloud;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">GRANT</span> <span style="color:#66d9ef">ALL</span> <span style="color:#66d9ef">ON</span> nextcloud.<span style="color:#f92672">*</span> <span style="color:#66d9ef">TO</span> <span style="color:#e6db74">&#39;username&#39;</span><span style="color:#f92672">@</span><span style="color:#e6db74">&#39;localhost&#39;</span> <span style="color:#66d9ef">IDENTIFIED</span> <span style="color:#66d9ef">BY</span> <span style="color:#e6db74">&#39;password&#39;</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">FLUSH</span> <span style="color:#66d9ef">PRIVILEGES</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">EXIT</span>;
+</span></span></code></pre></div><h3 id="https">HTTPS</h3>
+<p>As with any subdomain, we need to obtain an SSL certificate.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot certonly --nginx -d nextcloud.example.org
+</span></span></code></pre></div><h3 id="nginx-configuration">Nginx configuration</h3>
+<p>In <code>/etc/nginx/sites-available/</code> we need to make a new configuration for
+Nextcloud (example: <code>/etc/nginx/sites-available/nextcloud</code>).</p>
+<p>Add the following content <a href="https://docs.nextcloud.com/server/latest/admin_manual/installation/nginx.html">based of Nextcloud&rsquo;s recommendations</a> to the file, <strong>remembering to replace <code>nextcloud.example.org</code> with your Nextcloud domain</strong>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">upstream</span> <span style="color:#e6db74">php-handler</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server</span> <span style="color:#e6db74">unix:/var/run/php/php7.4-fpm.sock</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server</span> 127.0.0.1:<span style="color:#ae81ff">9000</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">map</span> $arg_v $asset_immutable {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;&#34;</span> <span style="color:#e6db74">&#34;&#34;</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">default</span> <span style="color:#e6db74">&#34;immutable&#34;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:80</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74">nextcloud.example.org</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">return</span> <span style="color:#ae81ff">301</span> <span style="color:#e6db74">https://</span>$server_name$request_uri;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#ae81ff">443</span>      <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:443</span> <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74">nextcloud.example.org</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">root</span> <span style="color:#e6db74">/var/www/nextcloud</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ssl_certificate</span>     <span style="color:#e6db74">/etc/letsencrypt/live/nextcloud.example.org/fullchain.pem</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ssl_certificate_key</span> <span style="color:#e6db74">/etc/letsencrypt/live/nextcloud.example.org/privkey.pem</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">client_max_body_size</span> <span style="color:#e6db74">512M</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">client_body_timeout</span> <span style="color:#e6db74">300s</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">fastcgi_buffers</span> <span style="color:#ae81ff">64</span> <span style="color:#e6db74">4K</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip_vary</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip_comp_level</span> <span style="color:#ae81ff">4</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip_min_length</span> <span style="color:#ae81ff">256</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip_proxied</span> <span style="color:#e6db74">expired</span> <span style="color:#e6db74">no-cache</span> <span style="color:#e6db74">no-store</span> <span style="color:#e6db74">private</span> <span style="color:#e6db74">no_last_modified</span> <span style="color:#e6db74">no_etag</span> <span style="color:#e6db74">auth</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">gzip_types</span> <span style="color:#e6db74">application/atom+xml</span> <span style="color:#e6db74">application/javascript</span> <span style="color:#e6db74">application/json</span> <span style="color:#e6db74">application/ld+json</span> <span style="color:#e6db74">application/manifest+json</span> <span style="color:#e6db74">application/rss+xml</span> <span style="color:#e6db74">application/vnd.geo+json</span> <span style="color:#e6db74">application/vnd.ms-fontobject</span> <span style="color:#e6db74">application/wasm</span> <span style="color:#e6db74">application/x-font-ttf</span> <span style="color:#e6db74">application/x-web-app-manifest+json</span> <span style="color:#e6db74">application/xhtml+xml</span> <span style="color:#e6db74">application/xml</span> <span style="color:#e6db74">font/opentype</span> <span style="color:#e6db74">image/bmp</span> <span style="color:#e6db74">image/svg+xml</span> <span style="color:#e6db74">image/x-icon</span> <span style="color:#e6db74">text/cache-manifest</span> <span style="color:#e6db74">text/css</span> <span style="color:#e6db74">text/plain</span> <span style="color:#e6db74">text/vcard</span> <span style="color:#e6db74">text/vnd.rim.location.xloc</span> <span style="color:#e6db74">text/vtt</span> <span style="color:#e6db74">text/x-component</span> <span style="color:#e6db74">text/x-cross-domain-policy</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">client_body_buffer_size</span> <span style="color:#ae81ff">512k</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Referrer-Policy</span>                      <span style="color:#e6db74">&#34;no-referrer&#34;</span>   <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-Content-Type-Options</span>               <span style="color:#e6db74">&#34;nosniff&#34;</span>       <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-Download-Options</span>                   <span style="color:#e6db74">&#34;noopen&#34;</span>        <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-Frame-Options</span>                      <span style="color:#e6db74">&#34;SAMEORIGIN&#34;</span>    <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-Permitted-Cross-Domain-Policies</span>    <span style="color:#e6db74">&#34;none&#34;</span>          <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-Robots-Tag</span>                         <span style="color:#e6db74">&#34;none&#34;</span>          <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">X-XSS-Protection</span>                     <span style="color:#e6db74">&#34;1</span>; <span style="color:#f92672">mode=block&#34;</span> <span style="color:#e6db74">always</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">fastcgi_hide_header</span> <span style="color:#e6db74">X-Powered-By</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">index</span> <span style="color:#e6db74">index.php</span> <span style="color:#e6db74">index.html</span> <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> = <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">if</span> <span style="color:#e6db74">(</span> $http_user_agent ~ <span style="color:#e6db74">^DavClnt</span> <span style="color:#e6db74">)</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">return</span> <span style="color:#ae81ff">302</span> <span style="color:#e6db74">/remote.php/webdav/</span>$is_args$args;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> = <span style="color:#e6db74">/robots.txt</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">allow</span> <span style="color:#e6db74">all</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">log_not_found</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">access_log</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">^~</span> <span style="color:#e6db74">/.well-known</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> = <span style="color:#e6db74">/.well-known/carddav</span> { <span style="color:#f92672">return</span> <span style="color:#ae81ff">301</span> <span style="color:#e6db74">/remote.php/dav/</span>; }
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> = <span style="color:#e6db74">/.well-known/caldav</span>  { <span style="color:#f92672">return</span> <span style="color:#ae81ff">301</span> <span style="color:#e6db74">/remote.php/dav/</span>; }
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/.well-known/acme-challenge</span>    { <span style="color:#f92672">try_files</span> $uri $uri/ =<span style="color:#ae81ff">404</span>; }
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/.well-known/pki-validation</span>    { <span style="color:#f92672">try_files</span> $uri $uri/ =<span style="color:#ae81ff">404</span>; }
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">return</span> <span style="color:#ae81ff">301</span> <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)</span>  { <span style="color:#f92672">return</span> <span style="color:#ae81ff">404</span>; }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">^/(?:\.|autotest|occ|issue|indie|db_|console)</span>                { <span style="color:#f92672">return</span> <span style="color:#ae81ff">404</span>; }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.php(?:$|/)</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># Required for legacy support
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#f92672">rewrite</span> <span style="color:#e6db74">^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|oc[ms]-provider\/.+|.+\/richdocumentscode\/proxy)</span> <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_split_path_info</span> <span style="color:#e6db74">^(.+?\.php)(/.*)</span>$;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">set</span> $path_info $fastcgi_path_info;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">try_files</span> $fastcgi_script_name =<span style="color:#ae81ff">404</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">include</span> <span style="color:#e6db74">fastcgi_params</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">SCRIPT_FILENAME</span> $document_root$fastcgi_script_name;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">PATH_INFO</span> $path_info;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">HTTPS</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">modHeadersAvailable</span> <span style="color:#e6db74">true</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">front_controller_active</span> <span style="color:#e6db74">true</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_pass</span> <span style="color:#e6db74">php-handler</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_intercept_errors</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_request_buffering</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_max_temp_file_size</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.(?:css|js|svg|gif|png|jpg|ico|wasm|tflite|map)$</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">try_files</span> $uri <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Cache-Control</span> <span style="color:#e6db74">&#34;public,</span> <span style="color:#e6db74">max-age=15778463,</span> $asset_immutable&#34;;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">access_log</span> <span style="color:#66d9ef">off</span>;     <span style="color:#75715e"># Optional: Don&#39;t log access to assets
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.wasm$</span> {
+</span></span><span style="display:flex;"><span>            <span style="color:#f92672">default_type</span> <span style="color:#e6db74">application/wasm</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.woff2?$</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">try_files</span> $uri <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">expires</span> <span style="color:#e6db74">7d</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">access_log</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/remote</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">return</span> <span style="color:#ae81ff">301</span> <span style="color:#e6db74">/remote.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">try_files</span> $uri $uri/ <span style="color:#e6db74">/index.php</span>$request_uri;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Enable the site by running this command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/
+</span></span></code></pre></div><h2 id="installing-nextcloud-itself">Installing Nextcloud Itself</h2>
+<p>We should have all the moving pieces in place now, so we can download and
+install Nextcloud itself. First, download the latest Nextcloud version and we will extract into <code>/var/www/</code> and ensure Nginx has the authority to use it.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>wget https://download.nextcloud.com/server/releases/latest.tar.bz2
+</span></span><span style="display:flex;"><span>tar -xjf latest.tar.bz2 -C /var/www
+</span></span><span style="display:flex;"><span>chown -R www-data:www-data /var/www/nextcloud
+</span></span><span style="display:flex;"><span>chmod -R <span style="color:#ae81ff">755</span> /var/www/nextcloud
+</span></span></code></pre></div><p>Start and enable php-fpm and reload nginx:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl enable php7.4-fpm --now
+</span></span><span style="display:flex;"><span>systemctl reload nginx
+</span></span></code></pre></div><p>Now we need to head to Nextcloud's web interface. In a web browser, go to the domain we have installed Nextcloud on:</p>
+<ul>
+<li>Choose an admin username and secure password.</li>
+<li>Leave Data folder at the default value unless it is incorrect.</li>
+<li>For Database user, enter the user you set for the SQL database.</li>
+<li>For Database password, enter the password you chose for the new user
+in MariaDB.</li>
+<li>For Database name, enter: <code>nextcloud</code></li>
+<li>Leave &quot;localhost&quot; as &quot;localhost&quot;.</li>
+<li>Click Finish.</li>
+</ul>
+<p>Congratulations, you have set up your own Nextcloud instance.</p>
+<h2 id="whatsnext">What's Next?</h2>
+<p>Now you may be wondering: What do I do now? Here are some suggestions:</p>
+<ul>
+<li>Rice your Nextcloud instance by changing your themeing and
+installing new themes and plugins in Settings in the Nextcloud Web
+Interface.</li>
+<li>Install the Nextcloud Client on your personal computer and sync your
+files to your instance.</li>
+<li>Install the Nextcloud App on your mobile device and sync your files
+to your instance.</li>
+<li>Set up your email account on the Nextcloud Mail app on the web
+interface to view and sync your email there (just like Gmail).</li>
+<li>Schedule events with Nextcloud Calender.</li>
+<li>Write notes in Markdown inside the Nextcloud Notes web and mobile
+app.</li>
+<li>Set the Nextcloud Dashboard as your web browser's homepage (it is
+pretty nice).</li>
+</ul>
+<p>In the event that anything goes wrong with the web interface of Nextcloud, Nextcloud has a commandline utility bundled with it called <code>occ</code>. You can use it with the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>sudo -u www-data php /var/www/nextcloud/occ
+</span></span></code></pre></div><p>You can make this an alias by putting it in your <code>~/.bashrc</code> file for ease of use with the following alias:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>alias occ<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;sudo -u www-data php /var/www/nextcloud/occ&#34;</span>
+</span></span></code></pre></div><p>Enjoy your cloud services in freedom.</p>
+<h2 id="contributors">Contributor(s)</h2>
+<ul>
+<li><a href="https://github.com/MattMadness">Matthew &quot;Madness&quot; Evan</a></li>
+<li>Edits by Luke</li>
+</ul>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

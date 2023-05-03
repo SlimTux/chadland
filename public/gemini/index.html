@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Gemini | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="What is Gemini? Gemini is a new internet protocol which is different from the HTTP and Gopher. It&#39;s much cleaner and has a growing community and audience of hackers.
+Why use gemini protocol? Gemini capsules (webpages of gemini) are lightweight, minimal, and don&#39;t use many resources to operate. It can run along with your websites. Gemini capsules use port 1965 by default. Your webserver can run at port 80 or 443 along with gemini server at port 1965.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Gemini</h1></header>
+<article>
+<h2 id="whatis">What is Gemini?</h2>
+<p><a href="https://gemini.circumlunar.space">Gemini</a> is a new
+internet protocol which is different from the HTTP and Gopher. It's
+much cleaner and has a growing community and audience of hackers.</p>
+<h3 id="why-use-gemini-protocol">Why use gemini protocol?</h3>
+<ul>
+<li>Gemini capsules (webpages of gemini) are lightweight, minimal, and
+don't use many resources to operate.</li>
+<li>It can run along with your websites. Gemini capsules use port 1965
+by default. Your webserver can run at port 80 or 443 along with
+gemini server at port 1965.</li>
+<li>By exploring an alternative protocol, you can check different ways
+to serve data and blogs.</li>
+</ul>
+<p>To access any gemini urls i.e. <code>gemini://example.org</code>, you can use any
+gemini client such as
+<a href="https://github.com/makeworld-the-better-one/amfora">amfora</a>,
+<a href="https://gmi.skyjake.fi/lagrange">lagrange</a>,
+<a href="https://thelambdalab.xyz/elpher/">elpher</a>, etc.</p>
+<h2 id="instructions">Instructions</h2>
+<h3 id="create-a-gemini-user">Create a gemini user</h3>
+<p>It is most secure and clean to have a separate <code>gemini</code> user, so let's
+create one:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>useradd -m -s /bin/bash gemini
+</span></span></code></pre></div><p>Now log in as <code>gemini</code> with the following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -l gemini
+</span></span></code></pre></div><p>To create and serve a gemini capsule, we need three basic steps:</p>
+<ol>
+<li>Content &ndash; the webpages in our capsule</li>
+<li>TLS certificate &ndash; Gemini requires encrypted connection.</li>
+<li>Gemini server &ndash; the program that makes our capsule available
+(similar to Nginx for HTTP)</li>
+</ol>
+<p>As the gemini user, we can create three different directories to
+simplify the process:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>mkdir -p ~/gemini/<span style="color:#f92672">{</span>content,certificate,server<span style="color:#f92672">}</span>
+</span></span></code></pre></div><h3 id="content">Content</h3>
+<p>This will be the directory where your capsule files will be contained.
+Gemini uses text/gemini markup (in place of HTTP's equivalent HTML). It
+heavily borrows from Markdown. Similar to .html or .md, gemini uses .gmi
+as its extension.</p>
+<p>To create one gemini file, go inside the <code>content</code> directory and create
+one <code>index.gmi</code> file.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>nano gemini/content/index.gmi
+</span></span></code></pre></div><p>We can add the content we want in our Gemini capsule here:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#75715e"># This is Sample Gemini page</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">## With header 1 and header 2</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">And a short paragraph like this.</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">=&gt; /index.gmi Link to the same page</span>
+</span></span></code></pre></div><h3 id="tls-certificate">TLS certificate</h3>
+<p>Go to the <code>certificate</code> directory which we created earlier and generate
+a TLS certificate using OpenSSL.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd ~/gemini/certificate/
+</span></span><span style="display:flex;"><span>openssl req -new -subj <span style="color:#e6db74">&#34;/CN=example.org&#34;</span> -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -days <span style="color:#ae81ff">3650</span> -nodes -out cert.pem -keyout key.pem
+</span></span></code></pre></div><h3 id="gemini-server">Gemini server</h3>
+<h4 id="download-and-prepare-the-server">Download and prepare the server</h4>
+<p>There are <a href="https://gemini.circumlunar.space/software">many gemini server software choices
+available</a>. We will use
+<code>agate</code> server for now. This is a simple gemini server written in Rust.</p>
+<p>It's a good idea to always get the most recent version, which you can
+see <a href="https://github.com/mbrubeck/agate/releases">on the agate releases
+page</a>. At the time of this
+writing, that is agate v3.1.0 which we will now download. We will
+download it to the <code>server</code> directory we made.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd ~/gemini/server
+</span></span><span style="display:flex;"><span>wget https://github.com/mbrubeck/agate/releases/download/v3.1.0/agate.x86_64-unknown-linux-gnu.gz
+</span></span></code></pre></div><p>Unzip the gz, then rename and make it executable:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>gunzip agate.x86_64-unknown-linux-gnu.gz
+</span></span><span style="display:flex;"><span>mv agate.x86_64-unknown-linux-gnu agate-server
+</span></span><span style="display:flex;"><span>chmod +x agate-server
+</span></span></code></pre></div><h4 id="create-a-system-service">Create a system service</h4>
+<p>Now we need to create a systemd service to autostart and manage agate.
+The gemini user does not have permission to do this, so press <kbd>ctrl-d</kbd>
+to log out of the gemini user and return to root. As root, create the
+file below by opening it in your text editor (nano, vim, etc.):</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>nano /etc/systemd/system/agate.service
+</span></span></code></pre></div><p>Add the following content to the file <strong>customizing highlighted text</strong>
+to your use.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-systemd" data-lang="systemd"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Description</span><span style="color:#f92672">=</span><span style="color:#e6db74">agate</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">After</span><span style="color:#f92672">=</span><span style="color:#e6db74">network.target</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">User</span><span style="color:#f92672">=</span><span style="color:#e6db74">gemini</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">simple</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/home/gemini/gemini/server/agate-server --content /home/gemini/gemini/content --certs /home/gemini/gemini/certificate/ --hostname example.org --lang en-US</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Install]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">WantedBy</span><span style="color:#f92672">=</span><span style="color:#e6db74">default.target</span>
+</span></span></code></pre></div><p>Now we are ready to run server. Enable and run agate server.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl enable agate
+</span></span><span style="display:flex;"><span>systemctl start agate
+</span></span></code></pre></div><h4 id="firewall">Firewall</h4>
+<p>Lastly, if you have a firewall running, remember to open port 1965,
+which is the port number used by gemini:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ufw allow <span style="color:#ae81ff">1965</span>
+</span></span></code></pre></div><h2 id="finalization">Finalization</h2>
+<p>Now your server should be running. If everything went okay, you can
+access your gemini capsule via any gemini client with a url like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>gemini://example.org
+</span></span></code></pre></div><p>Sample gemini site for reference:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>gemini://gemini.circumlunar.space
+</span></span></code></pre></div><p>Enjoy your first gemini capsule.</p>
+<p>For information about how to write in &quot;gemtext&quot; the markup language in
+Gemini, see this site:
+<a href="https://gemini.circumlunar.space/docs/gemtext.gmi">https://gemini.circumlunar.space/docs/gemtext.gmi</a>. As you might guess,
+it also has an analogous gemini capsule here:
+gemini://gemini.circumlunar.space/docs/gemtext.gmi</p>
+<hr>
+<p><em>Written by <a href="https://nihar.page">nihar.page</a></em></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Nginx Tweaks | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="The point of this article is to show you how to do some commonly-desired tweaks in Nginx while in the meantime helping you understand how it works.
+Do not require .html in URLs If your website is using lots of .html files for pages, it&#39;s sort of overkill to make people type that in for every page they are looking for. We can remove that requirement with Nginx.
+Open your site&#39;s configuration file in /etc/nginx/sites-enabled/ and within the server block, there should be a location block that looks something like this if you have followed the guide here.">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Nginx Tweaks</h1></header>
+<article>
+<p>The point of this article is to show you how to do some commonly-desired tweaks
+in Nginx while in the meantime helping you understand how it works.</p>
+<h2 id="do-not-require-html-in-urls">Do not require <code>.html</code> in URLs</h2>
+<p>If your website is using lots of <code>.html</code> files for pages, it's sort of
+overkill to make people type that in for every page they are looking for. We
+can remove that requirement with Nginx.</p>
+<p>Open your site's configuration file in <code>/etc/nginx/sites-enabled/</code> and within
+the <code>server</code> block, there should be a <code>location</code> block that looks something
+like this if you have followed <a href="/basic/nginx">the guide here</a>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">try_files</span> $uri $uri/ =<span style="color:#ae81ff">404</span> ;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>What this means is that in the file location of <code>/</code>, i.e. anywhere and
+everywhere in the root file system, We will look for the three things listed in
+<code>try_files</code> in that order:</p>
+<ol>
+<li><code>$uri</code>: a file that directly matches the content added after the domain.</li>
+<li><code>$uri/</code>: a <em>directory</em> that directly matches the content added after the
+domain.</li>
+<li><code>=404</code>: if neither of those is found, we give a 404 error, which as you
+probably know, signified &quot;Page not found.&quot;</li>
+</ol>
+<p>We will now change the content inside the <code>location</code> block to the below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">if</span> <span style="color:#e6db74">(</span>$request_uri ~ <span style="color:#e6db74">^/(.*)\.html$)</span> { <span style="color:#f92672">return</span> <span style="color:#ae81ff">302</span> <span style="color:#e6db74">/</span>$1; }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">try_files</span> $uri $uri.html $uri/ =<span style="color:#ae81ff">404</span> ;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>$1</code> here refers to the first content in the parentheses <code>()</code> in the preceeding
+regular expression.</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

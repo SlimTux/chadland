@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Page Quality | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="After you&#39;ve deployed your website, you may want to consider improving its performance, accessibility, and search-engine optimization (SEO). Doing so can help make your website more user-friendly and increase its page rank in search results. Luckily, Google provides a measurement tool to help you improve these aspects. Start by entering your website&#39;s URL and click the Run Audit button (it will take 5-10 seconds to generate the report).
+Once the report has finished, you&#39;ll be greeted by a score for four different categories: Performance, Accessibility, Best Practices, and SEO.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Page Quality</h1></header>
+<article>
+<p>After you've deployed your website, you may want to consider improving
+its performance, accessibility, and search-engine optimization (SEO).
+Doing so can help make your website more user-friendly and increase its
+page rank in search results. Luckily, Google provides a <a href="https://web.dev/measure">measurement
+tool</a> to help you improve these aspects. Start by
+entering your website's URL and click the <em>Run Audit</em> button (it will
+take 5-10 seconds to generate the report).</p>
+<p>Once the report has finished, you'll be greeted by a score for four
+different categories: <em>Performance</em>, <em>Accessibility</em>, <em>Best Practices</em>,
+and <em>SEO</em>. A lot of the tests listed are self-explanatory, and Google
+provides you with articles to help you pass them. Below are some easy
+ways to improve your scores, some specific to the nginx configuration
+used in the <a href="/basic/nginx">landchad website tutorial.</a></p>
+<h2 id="performance">Performance</h2>
+<h3 id="serving-static-assets-with-an-efficient-cache-policy">Serving static assets with an efficient cache policy</h3>
+<p>Serving your files with an efficient cache policy will allow the user's
+browser to cache files such as pictures and CSS so that the browser doesn't
+need to fetch these files each time the page is visited.</p>
+<p>It's very easy to set this up in nginx. Just paste the following within the
+server block of your website's configuration file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#75715e"># Media: images, icons, video, audio, HTC
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">location</span> ~<span style="color:#e6db74">*</span> <span style="color:#e6db74">\.(?:jpg|jpeg|gif|png|ico|svg|webp)</span>$ {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">expires</span> <span style="color:#e6db74">1M</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">access_log</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># max-age must be in seconds
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Cache-Control</span> <span style="color:#e6db74">&#34;max-age=2629746,</span> <span style="color:#e6db74">public&#34;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e"># CSS and Javascript
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">location</span> ~<span style="color:#e6db74">*</span> <span style="color:#e6db74">\.(?:css|js)</span>$ {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">expires</span> <span style="color:#e6db74">1y</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">access_log</span> <span style="color:#66d9ef">off</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Cache-Control</span> <span style="color:#e6db74">&#34;max-age=31556952,</span> <span style="color:#e6db74">public&#34;</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>You can add more types of file extensions (mp3, mp4, ogg) as you see
+fit.</p>
+<p>If you're changing your CSS files a lot, caching could keep repeat
+users from getting the most up-to-date stylesheet. To combat this, you
+can version your stylesheets like so:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">link</span> <span style="color:#a6e22e">rel</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;stylesheet&#34;</span> <span style="color:#a6e22e">type</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;text/css&#34;</span> <span style="color:#a6e22e">href</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;style.css?v=1.0.0&#34;</span>&gt;
+</span></span></code></pre></div><p>Just increase the version number whenever you update your stylesheet,
+and the browser will re-update its cache.</p>
+<h3 id="enable-text-compression">Enable text compression</h3>
+<p>Another easy addition to your websites configuration file. Enabling text
+compression is easy and will save bandwidth for users. Simply paste the
+following within the server block of your website's configuration file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">gzip</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">gzip_min_length</span> <span style="color:#ae81ff">1100</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">gzip_buffers</span> <span style="color:#ae81ff">4</span> <span style="color:#ae81ff">32k</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">gzip_types</span> <span style="color:#e6db74">text/plain</span> <span style="color:#e6db74">application/x-javascript</span> <span style="color:#e6db74">text/xml</span> <span style="color:#e6db74">text/css</span>;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">gzip_vary</span> <span style="color:#66d9ef">on</span>;
+</span></span></code></pre></div><p>After reloading nginx, you can test if compression is working by opening
+your browsers developer tools and going to the network tab. Refresh your
+website with the network tab, click on the item with your URL and look
+at the response headers. You should see <code>Content-Encoding: gzip</code> as one
+of the headers displayed.</p>
+<h3 id="properly-sizing-images">Properly sizing images</h3>
+<p>If you've put images on your webpage, you've most definitely gotten
+this warning. To pass this audit, you'll need to scale your images down
+using a tool like gimp or imagemagick to a size appropriate for your
+website. It doesn't make much sense to serve a high-res image for
+images that are rendered much smaller on a webpage.</p>
+<p>Once you've scaled your image down, you can use a tool like <code>cwebp</code> to
+convert your images into the .webp format, a format specifically created
+for serving bandwidth concious images.</p>
+<p>First, you'll have to install the webp package:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install webp
+</span></span></code></pre></div><p>Now you can easily convert your images to webp (keep in mind that it's
+much more effective to first size your images appropriately before
+this). Using the below command, you can specify the quality of the photo
+with the <code>q</code> option. I typically shoot for a quality in the range of
+60-80, depending on the image and how large it will be displayed on the
+webpage.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cwebp -q <span style="color:#ae81ff">80</span> your-photo.png -o your-photo.webp
+</span></span></code></pre></div><p>You can now check the difference in size of the images using <code>ls</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ls -lh your-photo*
+</span></span></code></pre></div><p>After utilizing webp images, the audit typically goes away, but if you
+didn't scale your image properly before hand, it may still linger.</p>
+<h2 id="accessibility">Accessibility</h2>
+<h3 id="image-elements-do-not-have-alt-attributes">Image elements do not have [alt] attributes</h3>
+<p>It may seem silly to add <code>alt</code> attributes to images, but it helps screen
+readers convey images to users and can help page rank as a result. The
+<code>alt</code> attribute should simply describe the image being displayed.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span>&lt;<span style="color:#f92672">img</span> <span style="color:#a6e22e">src</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;img/cabin.webp&#34;</span> <span style="color:#a6e22e">alt</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;A cabin nestled between pine trees&#34;</span>&gt;
+</span></span></code></pre></div><h2 id="seo">SEO</h2>
+<h3 id="document-does-not-have-a-meta-description">Document does not have a meta description</h3>
+<p>Adding meta descriptions to your webpage allow for web-crawlers and bots
+to easily determine what content your website contains. Just like on
+other online platforms, you can give your webpage a long list of
+keywords to help increase the chance someone stumbles upon your site
+from a search engine. You don't need to add all of the below meta tags
+to pass the audit, only add what's necessary.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-html" data-lang="html"><span style="display:flex;"><span><span style="color:#75715e">&lt;!--- Instructions for web scrapers ---&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;robots&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;index, follow&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;description&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;your website description&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;keywords&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;your, keywords, here&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;author&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;your name&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!--- Facebook specific standard, but many websites use this so it has become almost standard to include ---&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:site_name&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Site Name&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:domain&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:domain&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;example.org&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:title&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:title&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;Site Name&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:description&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;your website description&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:description&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:description&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;your website description&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:image&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://link-to-an-image-that-represents-your-site&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!--- below is for twitter sharing previews
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">you can test this at cards-dev.twitter.com ---&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:card&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://link-to-an-image-that-represents-your-site&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:image:src&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:image:src&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://link-to-an-image-that-represents-your-site&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:image&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:image&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;https://link-to-an-image-that-represents-your-site&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:image:alt&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:image:alt&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;alt text for your image&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:url&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;example.org&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;og:type&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;website&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">&lt;!--- If you have accounts on twitter or facebook that are relevant to your site ---&gt;</span>
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;fb:admins&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;facebook group&#34;</span> &gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:site&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:site&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;@yourTwitterHandle&#34;</span>&gt;
+</span></span><span style="display:flex;"><span>&lt;<span style="color:#f92672">meta</span> <span style="color:#a6e22e">name</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:creator&#34;</span> <span style="color:#a6e22e">property</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;twitter:creator&#34;</span> <span style="color:#a6e22e">content</span><span style="color:#f92672">=</span><span style="color:#e6db74">&#34;@yourTwitterHandle&#34;</span>&gt;
+</span></span></code></pre></div><hr>
+<p><em>Written by <a href="https://mccor.xyz">Jacob.</a> Donate Monero
+<a href="https://mccor.xyz">here.</a></em></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

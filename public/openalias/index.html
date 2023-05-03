@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>OpenAlias | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="The Problem Cryptocurrency can be unintuitive. After all, look at this annoying Monero address of ours:
+84RXmrsE7ffCe1ADprxLMHRpmyhZuWYScDR4YghE8pFRFSyLtiZFYwD6EPijVzD3aZiEpg57MfHEr1pGJNPXyJgENMnWrSh It breaks up pages and looks ugly. When you copy and paste it to send money, you might be paranoid that you somehow added an extra character in there. That&#39;s all around a bad user experience.
+It would be nice... It would be nice if we could just input someone&#39;s email address or maybe a website and send Bitcoin or Monero to that instead.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>OpenAlias</h1></header>
+<article>
+<h2 id="the-problem">The Problem</h2>
+<p>Cryptocurrency can be unintuitive. After all, look at this annoying
+Monero address of ours:</p>
+<ul>
+<li><code>84RXmrsE7ffCe1ADprxLMHRpmyhZuWYScDR4YghE8pFRFSyLtiZFYwD6EPijVzD3aZiEpg57MfHEr1pGJNPXyJgENMnWrSh</code></li>
+</ul>
+<p>It breaks up pages and looks ugly. When you copy and paste it to send
+money, you might be paranoid that you somehow added an extra character
+in there. That's all around a bad user experience.</p>
+<h3 id="it-would-be-nice">It would be nice...</h3>
+<p>It would be nice if we could just input someone's email address or
+maybe a website and send Bitcoin or Monero to that instead. So instead
+of that long jumble, it would be easier to just type in someone's
+website or email and sending them money that way.</p>
+<h2 id="the-solution">The Solution</h2>
+<p>The <a href="https://openalias.org/">OpenAlias</a> standards are just that. It uses
+<a href="/basic/dns">DNS</a> settings, which you know something about, to link a
+website or an email address with a cryptocurrency address. It allows
+someone to simply put <code>landchad.net</code> or <code>chad@landchad.net</code> as a payment
+recipient and that will direct to that long address above.</p>
+<p>The default Monero wallet and Bitcoin's Electrum are already compatible
+with OpenAlias, as are a growing group of wallet software.</p>
+<h2 id="lets-do-it">Let's do it.</h2>
+<p>Open up your domain registar and open up your DNS settings for the
+website you would like to add.</p>
+<p>Open the <strong>TXT record</strong> section. Now, create an entry with text like
+that below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>oa1:xmr recipient_address=84RXmrsE7ffCe1ADprxLMHRpmyhZuWYScDR4YghE8pFRFSyLtiZFYwD6EPijVzD3aZiEpg57MfHEr1pGJNPXyJgENMnWrSh; recipient_name=LandChad.net;
+</span></span></code></pre></div><p>Obviously change the address to your desired address and you may also
+give a proper name for yourself (this may be multiple words). Note that
+the entry above is <strong>all one line</strong>.</p>
+<p>Now create a new TXT entry and input this text into the <strong>TXT Value</strong>
+input box. Note here that I have create two entries:</p>
+
+<figure ><a href="/pix/openalias-01.png"><img src="/pix/openalias-01.png" alt="openalias"></a></figure>
+
+<p>One entry's &quot;Host&quot; is left empty, this will allow people to send
+Monero by merely typing <code>landchad.net</code>.</p>
+<p>The second entry has &quot;chad&quot; as the &quot;Host&quot;; this will allow people to
+send money to <code>chad@landchad.net</code>, i.e. this is how you allow people to
+connect a Monero address with an email address.</p>
+<h3 id="checking-to-see-if-it-works">Checking to see if it works...</h3>
+<p>Let's check to see if it works. In the Monero wallet, we can now type
+in <code>landchad.net</code> as a recipient:</p>
+
+<figure ><a href="/pix/openalias-02.png"><img src="/pix/openalias-02.png" alt="checking"></a></figure>
+
+<p>And once we press the &quot;Resolve&quot; button, it automatically turns into
+that address we gave to the DNS!</p>
+
+<figure ><a href="/pix/openalias-03.png"><img src="/pix/openalias-03.png" alt="It works!"></a></figure>
+
+<p>Now people can donate Monero to you without having to worry about QR
+codes or copying-and-pasting super-long public addresses!</p>
+<h3 id="now-with-bitcoin">Now with Bitcoin!</h3>
+<p>OpenAlias was originally developed for Monero, but since it's such a
+good idea, Bitcoin wallets have implemented it as well, so let's add
+some TXT entries for Bitcoin. The OpenAlias TXT records have the same
+format, except for the <strong>xmr</strong> at the beginning is replaced with <strong>btc</strong>
+and obviously we use a Bitcoin address instead of Monero.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>oa1:btc recipient_address=bc1q9f3tmkhnxj8gduytdktlcw8yrnx3g028nzzsc5; recipient_name=LandChad.net;
+</span></span></code></pre></div><p>Add the TXT entries in and save:</p>
+
+<figure ><a href="/pix/openalias-04.png"><img src="/pix/openalias-04.png" alt="bitcoin openalias entries"></a></figure>
+
+<p>And we can then check that it's working by trying to send money to
+<code>landchad.net</code> in Electrum. See that it automatically appends the
+address!</p>
+
+<figure ><a href="/pix/openalias-05.png"><img src="/pix/openalias-05.png" alt="electrum resolves an openalias"></a></figure>
+
+<p>And that's it. Now users can easily send your website or email address
+Bitcoin or Monero without having to worry about hard to read addresses
+and QR codes.</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

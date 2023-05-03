@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Fosspay | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Fosspay is a free-software web frontend for receiving donations and subscriptions, similar to Patreon or Liberapay, but which can be hosted on your own server. It can also interface with Patreon or Github Sponsors to aggregate all your donations.
+Stripe Setup Fosspay uses Stripe as a payment processor. You first must go to their website and create an account.
+Once you set everything up, you can go to https://dashboard.stripe.com/account/apikeys and get your &ldquo;Publishable Key&rdquo; and &ldquo;Secret Key&rdquo; which will be all you need to set up Fosspay.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/devault.jpg" class=titleicon>Fosspay</h1></header>
+<article>
+<p><a href="https://sr.ht/~sircmpwn/fosspay/">Fosspay</a> is a free-software web frontend for receiving donations and
+subscriptions, similar to Patreon or Liberapay, but which can be hosted
+on your own server. It can also interface with Patreon or Github
+Sponsors to aggregate all your donations.</p>
+<h2 id="stripe-setup">Stripe Setup</h2>
+<p>Fosspay uses <a href="https://stripe.com">Stripe</a> as a payment processor. You first must go to <a href="https://stripe.com">their website</a> and create an account.</p>
+<p>Once you set everything up, you can go to <a href="https://dashboard.stripe.com/account/apikeys">https://dashboard.stripe.com/account/apikeys</a> and get your &ldquo;Publishable Key&rdquo; and &ldquo;Secret Key&rdquo; which will be all you need to set up Fosspay.</p>
+<aside>
+<h3 id="note-on-free-software">Note on Free Software</h3>
+<p>Stripe is perhaps the best way to transact in the legacy financial system
+online, but you are still not using free and privacy respecting software.
+Fosspay is an open source payment gateway, but it still connects to Stripe.
+The only way to transact value over the internet on all free software is
+<a href="/monero/">crypto-currency</a>.</p>
+</aside>
+<h2 id="dependencies">Dependencies</h2>
+<p>We will need git, postgres and the ability to make a python virtual
+environment:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install git python3-venv python3-dev postgresql libpq-dev
+</span></span></code></pre></div><h2 id="download-and-installation">Download and Installation</h2>
+<p>We will download fosspay to <code>/var/www/fosspay/</code>. This directory will
+also serve as our virtual environement.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>git clone https://git.sr.ht/~sircmpwn/fosspay /var/www/fosspay
+</span></span><span style="display:flex;"><span>python3 -m venv /var/www/fosspay
+</span></span></code></pre></div><p>Activate the python environment with the command below, then we will
+install the dependencies.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>source /var/www/fosspay/bin/activate
+</span></span><span style="display:flex;"><span>cd /var/www/fosspay
+</span></span><span style="display:flex;"><span>pip install -r requirements.txt
+</span></span></code></pre></div><p>Be sure you are still in <code>/var/www/fosspay</code>, then we will build the
+package and create the configuration file.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>make
+</span></span><span style="display:flex;"><span>cp config.ini.example config.ini
+</span></span></code></pre></div><h2 id="create-a-database">Create a Database</h2>
+<p>Fosspay uses a PostgreSQL database to store donation information, so
+let's create a database and user for it.</p>
+<p>First, become the <code>postgres</code> user and run the <code>psql</code> command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su postgres
+</span></span><span style="display:flex;"><span>psql
+</span></span></code></pre></div><p>We will create a database named <code>fosspay</code> controled by a user named
+<code>fosspay</code> (also identified by a a password <code>fosspay</code>).</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sql" data-lang="sql"><span style="display:flex;"><span><span style="color:#66d9ef">create</span> <span style="color:#66d9ef">database</span> fosspay ;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">create</span> <span style="color:#66d9ef">user</span> fosspay <span style="color:#66d9ef">with</span> <span style="color:#66d9ef">encrypted</span> password <span style="color:#e6db74">&#39;fosspay&#39;</span> ;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">grant</span> <span style="color:#66d9ef">all</span> <span style="color:#66d9ef">privileges</span> <span style="color:#66d9ef">on</span> <span style="color:#66d9ef">database</span> fosspay <span style="color:#66d9ef">to</span> fosspay ;
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">\</span>q
+</span></span></code></pre></div><p>Note that if you want to use a different username or password for
+whatever reason, change them in the command above, but also in the
+<code>connection-string</code> variable in the configuration file.</p>
+<h2 id="configuration">Configuration</h2>
+<p>Now open up <code>/var/www/fosspay/config.ini</code> and we will set things up.
+Here are a list of things to edit.</p>
+<ul>
+<li><code>domain</code> should be set to <code><mark>donate.example.org</mark></code>, with your domain.</li>
+<li><code>protocol</code> can be set to <code>https</code>.</li>
+<li>Get or create an email account to use as a mailer and add the account/server
+information to the email settings.</li>
+<li>Add your public and secret Stripe keys to the information.</li>
+<li>Change the <code>connection-string</code> to
+<code>postgresql://fosspay:fosspay@localhost/fosspay</code> as set up above.</li>
+</ul>
+<p><strong>An important note:</strong> mail ports <em>must</em> be opened on the server you're using,
+or else Fosspay will silently fail to send mails when someone tries to donate
+or reset their password. You do not have to run a mail server on the same
+server as Fosspay, but either way, mail submission ports must be opened. This
+usually requires contacting your VPS provider and requesting it from them.
+Aside from this, any error in the email setup will cause Fosspay to crash
+silently.</p>
+<h3 id="optional-integration-with-patreon-github-liberapay">Optional Integration with Patreon, Github, Liberapay</h3>
+<p>Note that if you have a previous Patreon, Github Sponsors or Liberapay
+account, you can create an access token for Fosspay, so that you can
+display your income from those sources along side Fosspay monthly
+donations.</p>
+<p>For Liberapay, you only need to include your username. You must create a
+<a href="https://github.com/settings/tokens">Github access token</a> with the
+&quot;user&quot; access to interface with it, and you have to add several
+<a href="https://www.patreon.com/portal/registration/register-clients">Patreon client
+parameters</a>
+for it.</p>
+<h2 id="nginx-configuration">Nginx configuration</h2>
+<p>Fosspay runs on port 5000, so we can have Nginx show the site. Create an
+Nginx configuration file modeled as below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span> ;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:80</span> ;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">server_name</span> <span style="color:#e6db74"><mark>donate.example.org</mark></span> ;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">proxy_pass</span> <span style="color:#e6db74">http://localhost:5000</span> ;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>After that, <a href="/basic/certbot">remember to get HTTPS for the subdomain!</a>
+HTTPS is absolutely required for using Stripe as a payment processor.</p>
+<h2 id="systemd-file">Systemd File</h2>
+<p>We can now create a systemd service file for Fosspay. Create a file in
+<code>/etc/systemd/system/fosspay.service</code> as below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-systemd" data-lang="systemd"><span style="display:flex;"><span><span style="color:#66d9ef">[Unit]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Description</span><span style="color:#f92672">=</span><span style="color:#e6db74">fosspay website</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Wants</span><span style="color:#f92672">=</span><span style="color:#e6db74">network.target</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Wants</span><span style="color:#f92672">=</span><span style="color:#e6db74">postgresql.target</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Before</span><span style="color:#f92672">=</span><span style="color:#e6db74">network.target</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Before</span><span style="color:#f92672">=</span><span style="color:#e6db74">postgresql.target</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Service]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Type</span><span style="color:#f92672">=</span><span style="color:#e6db74">simple</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">WorkingDirectory</span><span style="color:#f92672">=</span><span style="color:#e6db74">/var/www/fosspay</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">VIRTUAL_ENV</span><span style="color:#f92672">=</span><span style="color:#e6db74">/var/www/fosspay</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">Environment</span><span style="color:#f92672">=</span><span style="color:#e6db74">PATH=$VIRTUAL_ENV/bin:$PATH</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStart</span><span style="color:#f92672">=</span><span style="color:#e6db74">/var/www/fosspay/bin/gunicorn app:app -b 127.0.0.1:5000</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">ExecStop</span><span style="color:#f92672">=</span><span style="color:#e6db74">/var/www/fosspay/bin/gunicorn</span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">[Install]</span>
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">WantedBy</span><span style="color:#f92672">=</span><span style="color:#e6db74">multi-user.target</span>
+</span></span></code></pre></div><p>Note that for safety, we are running fosspay through <code>gunicorn</code> in our
+virtual environment.</p>
+<p>We can now run <code>systemctl start fosspay</code> to start the service, and it
+should appear at the URL you designated above.</p>
+<h2 id="customizing-the-page">Customizing the Page</h2>
+<p>Within <code>/var/www/fosspay/templates</code>, there are various files that you
+can change to add text and other features to the page. The main file is
+<code>summary.html</code>, where you can add a description and other information
+that will appear. Restart the service after updating files to make
+changes live.</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

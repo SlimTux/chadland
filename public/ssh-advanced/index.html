@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>SSH - Advanced Usage | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Introduction This page is dedicated to advanced SSH usage examples. We will discuss the following concepts:
+config files (for client) tunneling jumping Config files Config files allow you to specify certain rules for all or chosen hosts. The file has a really simple structure. It is divided into sections which begin with the Host keyword. Sections are read one by one and the first matching section takes precedence over the remaining sections&mdash;you write more specific sections at the top and the more general sections below.">
+	<meta name="keywords" content="server">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>SSH - Advanced Usage</h1></header>
+<article>
+<h2 id="introduction">Introduction</h2>
+<p>This page is dedicated to advanced SSH usage examples. We will discuss
+the following concepts:</p>
+<ul>
+<li>config files (for client)</li>
+<li>tunneling</li>
+<li>jumping</li>
+</ul>
+<h2 id="config-files">Config files</h2>
+<p>Config files allow you to specify certain rules for all or chosen hosts.
+The file has a really simple structure. It is divided into sections
+which begin with the <code>Host</code> keyword. Sections are read one by one and
+<strong>the first matching section takes precedence over the remaining
+sections</strong>&mdash;you write more specific sections at the top and the more
+general sections below.</p>
+<h3 id="why-even-bother">Why even bother?</h3>
+<p>You might say that SSH client doesn't need any special configuration -
+you just type user@host and that's it. Well, what happens when you
+manage multiple servers? Maybe you want to use a different pair of keys
+for each servers? Maybe the server uses a port other than the default 22
+to avoid automated bots trying to log in?</p>
+<p>That's where config files come in handy!</p>
+<h3 id="example-scenario">Example scenario</h3>
+<p>Let's assume that you manage 3 servers, with the following access info:</p>
+<ol>
+<li>very.long.hostname.example1.com
+<ul>
+<li>user: admin</li>
+<li>port: 22</li>
+<li>key name: id_rsa</li>
+</ul>
+</li>
+<li>example2.com
+<ul>
+<li>user: billthemaster</li>
+<li>port: 2222</li>
+<li>key name: example2_ecdsa</li>
+</ul>
+</li>
+<li>192.168.133.7
+<ul>
+<li>user: management</li>
+<li>port: 22</li>
+<li>key name: id_rsa</li>
+</ul>
+</li>
+</ol>
+<p>You got tired having to always specify the identity file location with
+the <code>-i</code> option and the port with <code>-p</code> option for example2.com. Don't
+even mention <code>admin@very.long.hostname.example1.com</code>!</p>
+<p>In the given example, the config file could look like this:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Host server1
+</span></span><span style="display:flex;"><span>  HostName very.long.hostname.example1.com
+</span></span><span style="display:flex;"><span>  User admin
+</span></span><span style="display:flex;"><span>  IdentityFile ~/.ssh/id_rsa
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Host server2
+</span></span><span style="display:flex;"><span>  HostName example2.com
+</span></span><span style="display:flex;"><span>  Port 2222
+</span></span><span style="display:flex;"><span>  User billthemaster
+</span></span><span style="display:flex;"><span>  IdentityFile ~/.ssh/example2_ecdsa
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Host server3
+</span></span><span style="display:flex;"><span>  HostName 192.168.133.7
+</span></span><span style="display:flex;"><span>  User management
+</span></span><span style="display:flex;"><span>  IdentityFile ~/.ssh/id_rsa
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Host *
+</span></span><span style="display:flex;"><span>  IdentityFile /path/to/some/other/key
+</span></span></code></pre></div><p>You can see here usage of <code>Host *</code>. Options specified in this section
+will affect all other hosts.</p>
+<h3 id="but-where-do-i-put-this-file">But where do I put this file?</h3>
+<p>SSH looks for the options in the following order:</p>
+<ol>
+<li>command line arguments</li>
+<li><code>~/.ssh/config</code></li>
+<li><code>/etc/ssh/ssh_config</code></li>
+</ol>
+<p>You can also specify a custom path with the <code>-F</code> argument, for example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -F ~/Documents/projects/someproject/config/ssh production
+</span></span></code></pre></div><p>...or discard any config file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -F /dev/null username@hostname
+</span></span></code></pre></div><p>There's more to ssh config files, but I direct you to <code>man ssh_config</code>
+for more information</p>
+<h2 id="ssh-tunneling-portforwarding">SSH Tunneling (&quot;port forwarding&quot;)</h2>
+<p>SSH tunneling gives you the ability to route TCP traffic from your
+location to the remote server or the other way around (if server allows
+for this). Thanks to it, you can set up a secure connection with a
+service that doesn't provide any encryption by default. You can treat
+it like a lite VPN.</p>
+<p>You can for example access your SQL server via SSH without opening the
+port for public - you just need SSH port opened on the server's
+firewall. It's also a great way of creating a secure channel for
+connecting with other hosts on the server's network.</p>
+<h3 id="local-to-remote">Local to remote</h3>
+<p>You can route traffic from your local network to the remote server's
+network by using the <code>-L</code> option. Let's say you want to access a MySQL
+service on the remote server. You can tell SSH to route any traffic that
+comes to your 3000 port to port 3306 on the remote server with the
+following example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -L 3000:localhost:3306 username@example.com
+</span></span></code></pre></div><p>The above command states that anyone connecting to your port 3000 will
+be routed via the SSH connection to the localhost:3306 from the remote
+server's perspective</p>
+<p>If you can't understand the above description, let's take a look at
+another example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -L localhost:8080:192.168.178.25:80 username@example.com
+</span></span></code></pre></div><p>The above command states that any traffic coming from your device (and
+only yours, because of <code>localhost</code>) will be routed via the SSH channel
+to <code>192.168.178.25:80</code> in the server's network.</p>
+<p>In general, the argument's structure is as follows:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>-L <span style="color:#f92672">[</span>local_address:<span style="color:#f92672">][</span>local_port<span style="color:#f92672">]</span>:<span style="color:#f92672">[</span>remote_address<span style="color:#f92672">]</span>:<span style="color:#f92672">[</span>remote_port<span style="color:#f92672">]</span>
+</span></span></code></pre></div><p>The <code>local_address</code> can be your LAN IP, <code>localhost</code> or any other address
+that your device has. Depending on it, other devices in the specified
+network will be able to connect to you or not.</p>
+<p>The <code>remote_address</code> can be any address reachable from the server.</p>
+<p>You can, of course, route multiple ports. For example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -L 8000:localhost:8000 -L 8001:localhost:8001 username@example.com
+</span></span></code></pre></div><p>Please, remember, this works <strong>only</strong> on TCP based services, <strong>not</strong> UDP
+based.</p>
+<h3 id="remote-to-local">Remote to local</h3>
+<p>There might come a need for you to open your locally running service
+(for example a game server) to external connections. Let's say you
+can't or don't want to set up port forwarding on your router.</p>
+<p>You can use SSH to forward any traffic that is coming to a port on
+remote server to a port on your local network host. The same as in the
+case &quot;Local to remote&quot;, but the other way around.</p>
+<p>However, there is one additional step that is neccessary and requires
+you to have a root access to the remote server. You have to edit
+<code>/etc/ssh/sshd_config</code> file, to instruct SSH server to route traffic to
+the other end of SSH connection - your device.<br>
+Find and uncomment or append the one of the following lines to the file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>GatewayPorts yes # to allow all remote devices
+</span></span><span style="display:flex;"><span>GatewayPorts clientspecified # to allow only specific remote devices
+</span></span></code></pre></div><p>You can then specify the forwarding rule with the <code>-R</code> option, for
+example open <code>192.168.178.2:21</code> on your local network, to be accessible
+from a remote server on port 2100:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -R 2100:localhost:21 username@example.com
+</span></span></code></pre></div><p>...or provide access only to your friend with an IP <code>111.111.111.111</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -R 111.111.111.111:2100:localhost:21 username@example.com
+</span></span></code></pre></div><p>You can replace <code>localhost</code> with any host accessible from your local
+device, for example your local media server etc.</p>
+<h2 id="ssh-jumping">SSH Jumping</h2>
+<p>Jumping is a method of connecting to a target via one or more
+intermediate servers. This can be used to access servers behind
+firewalls etc. All connections on the chain are encrypted and routed via
+SSH.</p>
+<p>You can easily jump as shown in the following example:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -J username1@example1.com username2@example2.com
+</span></span></code></pre></div><p>You can also specify multiple intermediaries, by separating them with a
+comma:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ssh -J username1@example2.com,username2@example.com username3@example3.com
+</span></span></code></pre></div><p>There is also a possibility to set up &quot;jumping&quot; connection in a config
+file:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-text" data-lang="text"><span style="display:flex;"><span>Host intermediary1
+</span></span><span style="display:flex;"><span>  HostName target.intermediary-example.com
+</span></span><span style="display:flex;"><span>  User john
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Host target1
+</span></span><span style="display:flex;"><span>  HostName target.example.com
+</span></span><span style="display:flex;"><span>  ProxyJump intermediary1
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>Host target2
+</span></span><span style="display:flex;"><span>  HostName target2.example.com
+</span></span><span style="display:flex;"><span>  ProxyJump username@example1.com
+</span></span></code></pre></div></article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

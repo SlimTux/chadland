@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Matrix Synapse | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Matrix is easy-to-use, decentralized and encrypted private chat software. Matrix is federated, meaning that with a Matrix account on any server, including your own, you can talk to any other Matrix account on the internet, similar to email. Matrix also allows fully end-to-end encrypted group chats.
+Synapse is the name of the default Matrix server. It is written in Python. While it is requires somewhat more system resources than an XMPP server, it makes up for that in being very accessible to non-technical users.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/element.svg" class=titleicon>Matrix Synapse</h1></header>
+<article>
+<p>Matrix is easy-to-use, decentralized and encrypted private chat software. Matrix is federated, meaning that with a Matrix account on any server, including your own, you can talk to any other Matrix account on
+the internet, similar to email. Matrix also allows fully end-to-end encrypted group chats.</p>
+<p><strong>Synapse</strong> is the name of the default Matrix server. It is written in Python. While it is requires somewhat more system resources than <a href="/prosody">an XMPP server</a>, it makes up for that in being very accessible to non-technical users.</p>
+<h2 id="installation">Installation</h2>
+<p>The latest version of Synapse is not in the Debian package repositories by default, but we can easily add Matrix&rsquo;s repository including it:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install -y lsb-release wget apt-transport-https
+</span></span><span style="display:flex;"><span>wget -O /usr/share/keyrings/matrix-org-archive-keyring.gpg https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg
+</span></span><span style="display:flex;"><span>echo <span style="color:#e6db74">&#34;deb [signed-by=/usr/share/keyrings/matrix-org-archive-keyring.gpg] https://packages.matrix.org/debian/ </span><span style="color:#66d9ef">$(</span>lsb_release -cs<span style="color:#66d9ef">)</span><span style="color:#e6db74"> main&#34;</span> &gt; /etc/apt/sources.list.d/matrix-org.list
+</span></span></code></pre></div><p>After we update our packages lists, we will be able to install Synapse with <code>apt</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt update
+</span></span><span style="display:flex;"><span>apt install matrix-synapse-py3
+</span></span></code></pre></div><p>When prompted, give your main domain name (not a subdomain). This will be the domain appended to your Matrix address, e.g. <code>@chad:<mark>landchad.net</mark></code>. (<em>If you want to run Synapse under a different subdomain than the actual server name,</em> then you must set up <a href="https://matrix-org.github.io/synapse/latest/delegate.html">delegation.</a>)</p>
+<h2 id="nginx-configuration">Nginx configuration</h2>
+<p>Create an Nginx configuration file for Matrix, say <code>/etc/nginx/sites-available/matrix</code> and add the content below:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">server_name</span> <span style="color:#e6db74"><mark>matrix.example.org</mark></span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:80</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#ae81ff">443</span> <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span> <span style="color:#e6db74">default_server</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:443</span> <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span> <span style="color:#e6db74">default_server</span>;
+</span></span><span style="display:flex;"><span>       
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#ae81ff">8448</span> <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span> <span style="color:#e6db74">default_server</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:8448</span> <span style="color:#e6db74">ssl</span> <span style="color:#e6db74">http2</span> <span style="color:#e6db74">default_server</span>; 
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> ~<span style="color:#e6db74">*</span> <span style="color:#e6db74">^(\/_matrix|\/_synapse|\/_client)</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">proxy_pass</span> <span style="color:#e6db74">http://localhost:8008</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">proxy_set_header</span> <span style="color:#e6db74">X-Forwarded-For</span> $remote_addr;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">client_max_body_size</span> <span style="color:#e6db74"><mark>50M</mark></span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e"># These sections are required for client and federation discovery
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e"># (AKA: Client Well-Known URI)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/.well-known/matrix/client</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">return</span> <span style="color:#ae81ff">200</span> <span style="color:#e6db74">&#39;</span>{<span style="color:#f92672">&#34;m.homeserver&#34;:</span> {<span style="color:#f92672">&#34;base_url&#34;:</span> <span style="color:#e6db74">&#34;https://<mark>matrix.example.org</mark>&#34;</span><span style="color:#960050;background-color:#1e0010">}}</span><span style="color:#e6db74">&#39;</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">default_type</span> <span style="color:#e6db74">application/json</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Access-Control-Allow-Origin</span> <span style="color:#e6db74">*</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">location</span> <span style="color:#e6db74">/.well-known/matrix/server</span> {
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">return</span> <span style="color:#ae81ff">200</span> <span style="color:#e6db74">&#39;</span>{<span style="color:#f92672">&#34;m.server&#34;:</span> <span style="color:#e6db74">&#34;<mark>matrix.example.org</mark>:443&#34;</span><span style="color:#960050;background-color:#1e0010">}</span><span style="color:#e6db74">&#39;</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">default_type</span> <span style="color:#e6db74">application/json</span>;
+</span></span><span style="display:flex;"><span>                <span style="color:#f92672">add_header</span> <span style="color:#e6db74">Access-Control-Allow-Origin</span> <span style="color:#e6db74">*</span>;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Note the <code>client_max_body_size</code> variable. By default, Nginx caps the size of files it can transfer. We increase that to 50M if needed by Matrix. (Note however that both Matrix and Nginx have seperate settings for this and to raise it to something much larger, you will have to increase the value in both configuration files.)</p>
+<p>Now let&rsquo;s enable the Nginx Matrix site and run <strong>certbot</strong> to get an encryption certificate and restart Nginx.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ln -s /etc/nginx/sites-available/matrix /etc/nginx/sites-enabled
+</span></span><span style="display:flex;"><span>certbot --nginx -d <mark>matrix.example.org</mark>
+</span></span></code></pre></div><h2 id="configuration">Configuration</h2>
+<h3 id="read-the-config-file">Read the config file</h3>
+<p>The configuration file for Matrix is in <code>/etc/matrix-synapse/homeserver.yaml</code>. It is well documented and
+commented, so you can read about the settings, but let&rsquo;s change the essential ones here.</p>
+<p>Make what changes you want and run <code>systemctl reload matrix-synapse</code> to make the system configuration active.</p>
+<h3 id="database-setup">Database Setup</h3>
+<p>Synapse, like <a href="/peertube">PeerTube</a> and <a href="/prosody">Prosody</a>, supports <strong>PostgreSQL</strong> as a database backend. This can <strong>significantly increase performance,</strong> epsecially if you&rsquo;re already running PostgreSQL to run any other services.</p>
+<p>Begin by installing PostgreSQL:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install postgresql
+</span></span></code></pre></div><p>Then start the daemon:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl restart postgresql
+</span></span></code></pre></div><p>Now create a user named <code>synapse_user</code> to manage your database:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;createuser --pwprompt synapse_user&#34;</span> postgres
+</span></span></code></pre></div><p>And finally, create the actual database:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>su -c <span style="color:#e6db74">&#34;psql -c &#39;CREATE DATABASE synapse ENCODING &#39;UTF8&#39; LC_COLLATE=&#39;C&#39; LC_CTYPE=&#39;C&#39; template=template0 OWNER synapse_user;&#39;&#34;</span> postgres
+</span></span></code></pre></div><p>Now edit the database configuration in <code>/etc/matrix-synapse/homeserver.yaml</code> and comment out the following lines for the previous SQLite configuration:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yml" data-lang="yml"><span style="display:flex;"><span><span style="color:#75715e"># database:</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># name: sqlite3</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#75715e"># args:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e"># database: DATADIR/homeserver.db</span>
+</span></span></code></pre></div><p><em>Note: The example above is how yours should look like after it&rsquo;s commented out.</em></p>
+<p>Then, uncomment the following configuration above, and set the appropriate entries:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">database</span>:
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">name</span>: <span style="color:#ae81ff">psycopg2</span>
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">args</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">user</span>: <span style="color:#ae81ff"><mark>synapse_user</mark></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">password</span>: <span style="color:#ae81ff"><mark>secretpassword</mark></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">database</span>: <span style="color:#ae81ff"><mark>synapse</mark></span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">host</span>: <span style="color:#ae81ff">localhost</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">cp_min</span>: <span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">cp_max</span>: <span style="color:#ae81ff">10</span>
+</span></span></code></pre></div><p>Ensure that <code>synapse</code> is set to your database name, <code>synapse_user</code> is set to that database&rsquo;s owner, and that <code>secretpassword</code> is set to that user&rsquo;s password.</p>
+<h3 id="adding-users-and-admins">Adding Users and Admins</h3>
+<p>If you allow open registration on your server in the configuration file, you can create an account through Element or another Matrix client, but you are probably going to want an official admin account to use. To make one, simply run the following command, which will then give you several choices for creating a user, among which will be the ability to make it an admin.</p>
+<p>Before setting up the admin user, make sure to set a <code>registration_shared_secret</code> in <code>/etc/matrix-synapse/homserver.yaml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">registration_shared_secret</span>: <span style="color:#ae81ff"><mark>???</mark></span>
+</span></span></code></pre></div><p>Then, run the following command to register a user:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>cd /etc/matrix-synapse
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>register_new_matrix_user -c homeserver.yaml http://localhost:8008
+</span></span></code></pre></div><p>This command will prompt you for a username, password and whether to make the user an admin or not.</p>
+<h3 id="url-previews">URL Previews</h3>
+<p>To enable server-generated previews of webpages, change this line to true in <code>/etc/matrix-synapse/homeserver.yaml</code>:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">url_preview_enabled</span>: <span style="color:#66d9ef">true</span>
+</span></span></code></pre></div><p>And make sure to uncomment the <code>url_preview_ip_range_blacklist:</code> section; Otherwise, Synapse will refuse to start up again!</p>
+<h3 id="federation">Federation</h3>
+<p>Using the Nginx configuration provided with this guide, federation should work out of the box with Synapse. You can test whether it&rsquo;s working using the <a href="https://federationtester.matrix.org/">Matrix Federation Tester.</a></p>
+<p>However, some extra features can be enabled to increase the usability of your homeserver over federation. In <code>/etc/matrix-synapse/homeserver.yaml</code>, the following lines can be edited:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">allow_public_rooms_over_federation</span>: <span style="color:#66d9ef">true</span>
+</span></span></code></pre></div><p>This can be un-commented to allow users to add your homserver to their list of servers (in a client like Element) and see a list of all the public rooms.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-yaml" data-lang="yaml"><span style="display:flex;"><span><span style="color:#f92672">allow_public_rooms_without_auth</span>: <span style="color:#66d9ef">true</span>
+</span></span></code></pre></div><p>This can be un-commented to enable guests to see public rooms without authenticating.</p>
+<h2 id="using-matrix-with-element-matrix-logopixelementsvgelement">Using Matrix with <img src="/pix/element.svg" alt="Element Matrix logo">Element</h2>
+<p>There are many different <a href="https://matrix.org/clients/">clients</a> that can be used on desktops or phones to chat on your Matrix server, but the most popular and most widely vetted is <img src="/pix/element.svg" alt="Element logo">Element.</p>
+<p>Get Element to access your Matrix server:</p>
+<ul>
+<li>Mobile:
+<ul>
+<li><a href="https://f-droid.org/packages/im.vector.app/">F-droid</a></li>
+<li><a href="https://play.google.com/store/apps/details?id=im.vector.app">Google Play</a></li>
+<li><a href="https://apps.apple.com/app/vector/id1083446067">Apple App Store</a></li>
+</ul>
+</li>
+<li>Real computer:
+<ul>
+<li>GNU/Linux: You know how to install it.</li>
+<li><a href="https://packages.riot.im/desktop/install/win32/x64/Element%20Setup.exe">Windows</a></li>
+<li><a href="https://packages.riot.im/desktop/install/macos/Element.dmg">Mac</a></li>
+</ul>
+</li>
+</ul>
+<p>Note also that Element has a web client (i.e. a version that can be accessed on your own website) that is also easy to install on an Nginx server, although that will be covered in another article.</p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

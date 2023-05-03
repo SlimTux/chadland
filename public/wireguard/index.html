@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Wireguard | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Looking for lightweight privacy on the go? Then consider hosting a WireGuard VPN service. In addition to this setup guide, we&rsquo;ll also demonstrate how to tunnel your WireGuard traffic through a TLS WebSocket connection to circumvent some deep packet inspection systems.
+As an example, we&rsquo;ll be using a virtual 172.16.0.0/24 network, but any private ip range will suffice.
+Installation On the Server Install the WireGuard management tools:
+apt install wireguard Enable IPv4 forwarding by uncommenting the following line in /etc/sysctl.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/wireguard.svg" class=titleicon>Wireguard</h1></header>
+<article>
+<p>Looking for lightweight privacy on the go? Then consider hosting a WireGuard VPN service.
+In addition to this setup guide, we&rsquo;ll also demonstrate how to tunnel
+your WireGuard traffic through a TLS WebSocket connection to circumvent some
+deep packet inspection systems.</p>
+<p>As an example, we&rsquo;ll be using a virtual 172.16.0.0/24 network, but any private ip range will suffice.</p>
+<h2 id="installation">Installation</h2>
+<h3 id="on-the-server">On the Server</h3>
+<p>Install the WireGuard management tools:</p>
+<pre><code>apt install wireguard
+</code></pre>
+<p>Enable IPv4 forwarding by uncommenting the following line in <code>/etc/sysctl.d/99-sysctl.conf</code></p>
+<pre><code>net.ipv4.ip_forward=1
+</code></pre>
+<p>Run the following command to apply the change:</p>
+<pre><code>sysctl -w net.ipv4.ip_forward=1
+</code></pre>
+<h3 id="on-the-client">On the Client</h3>
+<p>Use your package manager to install the WireGuard Management Tools.
+On Arch and Fedora based distros the package is <code>wireguard-tools</code>. For Debian based, it&rsquo;s listed above.</p>
+<p>Create the public and private keys for your machine:</p>
+<pre><code>sudo bash -c &quot;umask 077 ; wg genkey &gt; /etc/wireguard/client_priv.key&quot;
+sudo bash -c &quot;wg pubkey &lt; /etc/wireguard/client_priv.key &gt; /etc/wireguard/client_pub.key&quot;
+</code></pre>
+<h3 id="back-to-the-server">Back to the Server</h3>
+<p>Generate the public and private keys for your server:</p>
+<pre><code>umask 077 ; wg genkey &gt; /etc/wireguard/server_priv.key
+wg pubkey &lt; /etc/wireguard/server_priv.key &gt; /etc/wireguard/server_pub.key
+</code></pre>
+<p>Create a WireGuard configuration file <code>/etc/wireguard/wg0.conf</code>, where <code>wg0</code> is the name of the network interface:</p>
+<pre><code>[Interface]
+Address = 172.16.0.1/24
+ListenPort = 51820
+PrivateKey = (server's private key goes here)
+# Firewall rules
+PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -A FORWARD -o %i -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -D FORWARD -o %i -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+
+[Peer]
+# Client #1 details
+PublicKey = (client's public key goes here)
+# Traffic to route to this client
+AllowedIPs = 172.16.0.2/32
+</code></pre>
+<p>Paste the server&rsquo;s private key and client&rsquo;s public key on their respective
+lines, each being around 45 characters with an equal sign at the end.</p>
+<h4 id="note-on-extra-peers">Note on extra peers</h4>
+<p>In our example, the subnet could recognize up to 254 other peers. Add the new
+peer&rsquo;s info below the first peer and update the <code>AllowedIPS</code> line to the next virtual
+ip. Don&rsquo;t change the <code>32</code>: this ensures everyone&rsquo;s tunnel is isolated.
+Use this optionally for extra devices or for friends.</p>
+<p>Enable and start the WireGuard service:</p>
+<pre><code>systemctl enable --now wg-quick@wg0.service
+</code></pre>
+<p>Change <code>wg0</code> to match the name of the config file if you called it something different.</p>
+<h3 id="back-to-the-client">Back to the Client</h3>
+<p>Create another WireGuard configuration file in <code>/etc/wireguard/myvpn.conf</code>:</p>
+<pre><code>[Interface]
+Address = 172.16.0.2/24
+PrivateKey = (client's private key goes here)
+# Set to your desired DNS server
+# DNS = 9.9.9.9
+
+[Peer]
+PublicKey = (server's public key goes here)
+# Endpoint (server) can be a domain name or IP address
+Endpoint = (server's IP address goes here):51820
+# Traffic to route to server
+AllowedIPs = 0.0.0.0/0, ::/0
+</code></pre>
+<p>Fill in your information where needed. Remember to use your server&rsquo;s public ip address, not the wireguard one.</p>
+<p>Start WireGuard:</p>
+<pre><code>sudo wg-quick up myvpn
+</code></pre>
+<p>If you cannot ping <code>172.16.0.1</code> or reach the Internet, and have meticulously followed this guide so far,
+there&rsquo;s a good chance you&rsquo;re behind a corporate firewall. Read on.</p>
+<h2 id="websocket-tunnel">WebSocket Tunnel</h2>
+<h4 id="note-on-tls">Note on TLS</h4>
+<p>If your server hosts a website with https, you won&rsquo;t be able to use port 443 to
+obfuscate your WireGuard packets as TLS traffic. You may use some other innocuous
+port, but there&rsquo;s no guarantee you&rsquo;ll punch through the picky firewall.</p>
+<h3 id="on-the-server-1">On the Server</h3>
+<p>Download and install wstunnel:</p>
+<pre><code>wget https://github.com/erebe/wstunnel/releases/download/v4.0/wstunnel-x64-linux
+mv wstunnel-x64-linux /usr/local/bin/wstunnel
+chmod uo+x /usr/local/bin/wstunnel
+setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/wstunnel
+</code></pre>
+<p>Make a new systemd service config file, <code>/etc/systemd/system/wstunnel.service</code>:</p>
+<pre><code>[Unit]
+Description=Tunnel WireGuard UDP over websocket
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+ExecStart=/usr/local/bin/wstunnel -v --server wss://0.0.0.0:443 --restrictTo=127.0.0.1:51820
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>Enable and start wstunnel:</p>
+<pre><code>systemctl enable --now wstunnel
+</code></pre>
+<h3 id="on-the-client-1">On the Client</h3>
+<p>Download and install wstunnel and a helper script:</p>
+<pre><code>wget https://github.com/erebe/wstunnel/releases/download/v4.0/wstunnel-x64-linux
+sudo mv wstunnel-x64-linux /usr/local/bin/wstunnel
+sudo chmod +x /usr/local/bin/wstunnel
+wget https://codeberg.org/onasaft/sbx/raw/branch/main/vpn/wstunnel.sh
+sudo mv wstunnel.sh /etc/wireguard/wstunnel.sh
+sudo chmod +x /etc/wireguard/wstunnel.sh
+</code></pre>
+<p>Create the wstunnel configuration file, <code>/etc/wireguard/myvpn.wstunnel</code>:</p>
+<pre><code>REMOTE_HOST=(server's IP address goes here)
+REMOTE_PORT=51820
+# Use the following line if you're connecting to your VPN server using a domain name.
+# UPDATE_HOSTS='/etc/hosts'
+</code></pre>
+<p>Edit <code>/etc/wireguard/myvpn.conf</code>. Change the <code>Endpoint</code> line to <code>127.0.0.1:51820</code> and add these four lines to the <code>[Interface]</code> section:</p>
+<pre><code>Table = off
+PreUp = source /etc/wireguard/wstunnel.sh &amp;&amp; pre_up %i
+PostUp = source /etc/wireguard/wstunnel.sh &amp;&amp; post_up %i
+PostDown = source /etc/wireguard/wstunnel.sh &amp;&amp; post_down %i
+</code></pre>
+<p>Start WireGuard again:</p>
+<pre><code>sudo wg-quick up myvpn
+</code></pre>
+<p>To disconnect, type <code>down</code> instead of <code>up</code>. And just like that, you now host a WireGuard VPN server!</p>
+<p><strong>Contributor</strong> - <a href="https://tomfasano.net">tomfasano.net</a></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

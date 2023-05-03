@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Cgit | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Once you have your server hosting your git repositories, you might want to allow others to browse your repositories on the web. Cgit is a Free Software that allows browsing git repositories through the web.
+Note that Cgit is a read-only frontend for Git repositories and doesn&#39;t have issues, pull requests or user management. If that&#39;s what you want, consider installing Gitea instead.
+Installing cgit and fcgiwrap Install fcgiwrap NGINX doesn&#39;t have the capability to run CGI scripts by itself, it depends on an intermediate layer like fcgiwrap to run CGI scripts like cgit:">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/cgit.svg" class=titleicon>Cgit</h1></header>
+<article>
+<p>Once you have your server hosting your git repositories, you might want
+to allow others to browse your repositories on the web. Cgit is a Free
+Software that allows browsing git repositories through the web.</p>
+<p>Note that Cgit is a read-only frontend for Git repositories and doesn't
+have issues, pull requests or user management. If that's what you want,
+consider installing <a href="/gitea">Gitea</a> instead.</p>
+<h2 id="installing-cgit-and-fcgiwrap">Installing cgit and fcgiwrap</h2>
+<h3 id="install-fcgiwrap">Install fcgiwrap</h3>
+<p>NGINX doesn't have the capability to run CGI scripts by itself, it
+depends on an intermediate layer like fcgiwrap to run CGI scripts like
+cgit:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install fcgiwrap
+</span></span></code></pre></div><p>And now we can install cgit itself with:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt install cgit
+</span></span></code></pre></div><h2 id="setting-up-nginx">Setting up NGINX</h2>
+<p>You should have an NGINX server running with a TLS certificate by now.
+Add the following configuration to your server to pass the requests to
+Cgit, while serving static files directly:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#ae81ff">443</span> <span style="color:#e6db74">ssl</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:443</span> <span style="color:#e6db74">ssl</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ssl_certificate</span> <span style="color:#e6db74">/etc/ssl/nginx/<mark>git.example.org</mark>.crt</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">ssl_certificate_key</span> <span style="color:#e6db74">/etc/ssl/nginx/<mark>git.example.org</mark>.key</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74"><mark>git.example.org</mark></span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">root</span> <span style="color:#e6db74">/usr/share/cgit</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">try_files</span> $uri <span style="color:#e6db74">@cgit</span> ;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">/.+/(info/refs|git-upload-pack)</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">include</span>             <span style="color:#e6db74">fastcgi_params</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span>       <span style="color:#e6db74">SCRIPT_FILENAME</span> <span style="color:#e6db74">/usr/lib/git-core/git-http-backend</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span>       <span style="color:#e6db74">PATH_INFO</span>           $uri;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span>       <span style="color:#e6db74">GIT_HTTP_EXPORT_ALL</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span>       <span style="color:#e6db74">GIT_PROJECT_ROOT</span>    <span style="color:#e6db74">/srv/git</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span>       <span style="color:#e6db74">HOME</span>                <span style="color:#e6db74">/srv/git</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_pass</span>        <span style="color:#e6db74">unix:/run/fcgiwrap.socket</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">@cgit</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">include</span> <span style="color:#e6db74">fastcgi_params</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">SCRIPT_FILENAME</span> <span style="color:#e6db74">/usr/lib/cgit/cgit.cgi</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">PATH_INFO</span> $uri;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">QUERY_STRING</span> $args;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">HTTP_HOST</span> $server_name;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_pass</span> <span style="color:#e6db74">unix:/run/fcgiwrap.socket</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Then get NGINX to reload your configuration. This configuration also enables
+cloning via HTTPS, so make sure to point the <code>fastcgi_param GIT_PROJECT_ROOT</code>
+to the directory where you store your repositories.</p>
+<h2 id="configuring-cgit">Configuring cgit</h2>
+<p>You've got cgit up and running now, but you'll probably see it without
+any style and without any repository. To change this, we need to
+configure Cgit to our liking, by editing <code>/etc/cgitrc</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>css=/cgit.css
+</span></span><span style="display:flex;"><span>logo=/cgit.svg
+</span></span><span style="display:flex;"><span>virtual-root=/
+</span></span><span style="display:flex;"><span>clone-prefix=https://<mark>git.example.org</mark>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span># Title and description shown on top of each page
+</span></span><span style="display:flex;"><span>root-title=<mark>Chad's git server</mark>
+</span></span><span style="display:flex;"><span>root-desc=<mark>A web interface to LandChad's git repositories, powered by Cgit</mark>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span># The location where git repos are stored on the server
+</span></span><span style="display:flex;"><span>scan-path=/srv/git/
+</span></span></code></pre></div><p>This configuration assumes you followed the <a href="/git">git hosting guide</a>
+and store your repositories on the <code>/srv/git/</code> directory.</p>
+<p>Cgit's configuration allows changing many settings, as documented on
+the cgitrc(5) manpage installed with Cgit.</p>
+<h3 id="changing-the-displayed-repository-owner">Changing the displayed repository owner</h3>
+<p>Cgit's main page shows each repo's owner, which is &quot;git&quot; in case you
+followed the git hosting guide, but you might want to change the name to
+yours. Cgit shows the owner's system name, so you need to modify the
+git user to give it your name:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>usermod -c <span style="color:#e6db74">&#34;<mark>Your Name</mark>&#34;</span> git
+</span></span></code></pre></div><h3 id="changing-the-repository-description">Changing the repository description</h3>
+<p>Navigate to your bare repository on the server and edit the
+<code>description</code> file inside it</p>
+<h3 id="displaying-the-repository-idle-time">Displaying the repository idle time</h3>
+<p>To do this, we need to create a post-receive hook for each repository
+that updates the file cgit uses to determine the idle time. Inside your
+repository, create a file <code>hooks/post-receive</code> and add the following
+contents:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span><span style="color:#75715e">#!/bin/sh
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>agefile<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>git rev-parse --git-dir<span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span>/info/web/last-modified
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>mkdir -p <span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">$(</span>dirname <span style="color:#e6db74">&#34;</span>$agefile<span style="color:#e6db74">&#34;</span><span style="color:#66d9ef">)</span><span style="color:#e6db74">&#34;</span> <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>git <span style="color:#66d9ef">for</span>-each-ref <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    --sort<span style="color:#f92672">=</span>-authordate --count<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    --format<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;%(authordate:iso8601)&#39;</span> <span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>    &gt;<span style="color:#e6db74">&#34;</span>$agefile<span style="color:#e6db74">&#34;</span>
+</span></span></code></pre></div><p>And give it execution permissions with:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>chmod +x hooks/post-receive
+</span></span></code></pre></div><p>Next time you push to that repository, the idle time should reset and
+show the correct value.</p>
+<h2 id="contribution">Contribution</h2>
+<ul>
+<li>Ariel Costas &ndash; <a href="https://costas.dev">website</a></li>
+</ul>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

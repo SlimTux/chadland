@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Rainloop | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Rainloop is a webmail client, a program that allows you to access your email online like Gmail. It is useful to be able to access you email from a web browser because it allows you to easily access your email from any device with a web browser without any additional setup.
+If you set up Nextcloud then you do not need to install Rainloop because Nextcloud comes with a webmail client.">
+	<meta name="keywords" content="service">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1><img src="/pix/rainloop.png" class=titleicon>Rainloop</h1></header>
+<article>
+<p><a href="https://www.rainloop.net/">Rainloop</a>
+is a webmail client, a program that allows you to access your email
+online like Gmail. It is useful to be able to access you email from a
+web browser because it allows you to easily access your email from any
+device with a web browser without any additional setup.</p>
+<p>If you set up
+<a href="/nextcloud"><img src="/pix/nextcloud.svg" alt="logo">Nextcloud</a>
+then you do not need to install Rainloop because Nextcloud comes with a
+webmail client. However, if all you want is a webmail client and you do
+not need all of the extra things that Nextcloud provides, Rainloop would
+be the better choice out of the two since it is less bloated and simpler
+to install.</p>
+<h2 id="instructions">Instructions</h2>
+<p>First we will install the required packages for Rainloop with the
+following command:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>apt-get install php7.4 php7.4-common php7.4-curl php7.4-xml php7.4-fpm php7.4-json php7.4-dev php7.4-mysql unzip -y
+</span></span></code></pre></div><p>Then we will download the community version of Rainloop, unzip it into
+an appropriate directory and fix all of the file permissions:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>curl -L <span style="color:#e6db74">&#34;https://www.rainloop.net/repository/webmail/rainloop-latest.zip&#34;</span> -o <span style="color:#e6db74">&#34;rainloop.zip&#34;</span>
+</span></span><span style="display:flex;"><span>unzip rainloop.zip -d /var/www/mail
+</span></span><span style="display:flex;"><span>chown -R www-data: /var/www/mail
+</span></span></code></pre></div><p>We have installed Rainloop itself, but now we need Nginx to serve the
+client. We do that by adding the following text into the file
+<code>/etc/nginx/sites-available/mail</code> (you can replace the bold text with
+whatever is appropriate for your server).</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-nginx" data-lang="nginx"><span style="display:flex;"><span><span style="color:#66d9ef">server</span> {
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#ae81ff">80</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">listen</span> <span style="color:#e6db74">[::]:80</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">server_name</span> <span style="color:#e6db74">mail.example.org</span> ;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">root</span> <span style="color:#e6db74">/var/www/mail</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">index</span> <span style="color:#e6db74">index.php</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">access_log</span> <span style="color:#e6db74">/var/log/nginx/rainloop_access.log</span>;
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">error_log</span> <span style="color:#e6db74">/var/log/nginx/rainloop_error.log</span>;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">/</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">try_files</span> $uri $uri/ <span style="color:#e6db74">/index.php?</span>$query_string;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">\.php$</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_index</span> <span style="color:#e6db74">index.php</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_split_path_info</span> <span style="color:#e6db74">^(.+\.php)(.*)</span>$;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_keep_conn</span> <span style="color:#66d9ef">on</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_pass</span> <span style="color:#e6db74">unix:/var/run/php/php7.4-fpm.sock</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">include</span> <span style="color:#e6db74">/etc/nginx/fastcgi_params</span>;
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">fastcgi_param</span> <span style="color:#e6db74">SCRIPT_FILENAME</span> $document_root$fastcgi_script_name;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> ~ <span style="color:#e6db74">/\.ht</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">deny</span> <span style="color:#e6db74">all</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">location</span> <span style="color:#e6db74">^~</span> <span style="color:#e6db74">/data</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#f92672">deny</span> <span style="color:#e6db74">all</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Then enable the site by linking it to the sites-enabled directory:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>ln -s /etc/nginx/sites-available/mail /etc/nginx/sites-enabled/
+</span></span></code></pre></div><p>Reload nginx:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>systemctl reload nginx
+</span></span></code></pre></div><p>Finally get certifications if you are using a new subdomain:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>certbot --nginx
+</span></span></code></pre></div><p>After that go to <code>mail.example.org/?admin</code> and login with the default
+username and password: admin, 12345. Now you are in the admin panel and
+the first thing you do should be to change the adminsitrator password by
+looking in the security tab on the left.</p>
+
+<figure ><img src="/pix/rainloop-1.png" alt="rainloop"></figure>
+
+<p>After securing the admin account you can go to domains and add your own
+email address.</p>
+
+<figure ><img src="/pix/rainloop-2.png" alt="rainloop"></figure>
+
+<p>Finally, go to <code>mail.example.org</code> and login with your email address and
+password.</p>
+<h2 id="contribution">Contribution</h2>
+<p><a href="https://deniz.telci.org/">Deniz Telci</a> - XMR:
+<code>4AcKbpTUc3QX2zHYdh9HZwJAQyexdybFhF1WhXTFhxAcV9jgzB6kroqGZDgeW3rQqXEMYJioYo61kaLBqstwecty9Bjbr4v</code></p>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

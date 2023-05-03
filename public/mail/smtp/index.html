@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Sending and Receiving Email | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="The first step to setting up an email server is having an SMTP server. SMTP sends and receives email. Whether we want a full email server or just the ability to send automated email by script, we will need SMTP, and Postfix is the standard SMTP server.
+Here let&#39;s set a server up. Note that our goal is to be able to send emails from our server. If you want a full email server, this is the first step, and we will address the rest later.">
+	<meta name="keywords" content="mail">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Sending and Receiving Email</h1></header>
+<article>
+<p>The first step to setting up an email server is having an SMTP server.
+SMTP sends and receives email. Whether we want a full email server or
+just the ability to send automated email by script, we will need SMTP,
+and Postfix is the standard SMTP server.</p>
+<p>Here let's set a server up. Note that our goal is to be able to send
+emails from our server. If you want a full email server, this is the
+first step, and we will address the rest later.</p>
+<h2 id="before-beginning">Before beginning!</h2>
+<p>Whatever VPS (<a href="https://www.vultr.com/?ref=8384069-6G">Vultr</a> or
+<a href="https://my.frantech.ca/aff.php?aff=3886">Frantech</a>) or IPS you are
+using, it is a very common policy to <strong>automatically block all email
+ports by default</strong>. VPS providers do this to prevent spammers from using
+their services.</p>
+<p>If you want to start an email server, therefore, go to your VPS's site
+and open a ticket or make a request to open up email ports, notably port <code>25</code>. This is a
+simple process that requires nothing too special. One of the wagies at
+your VPS will kindly do the needful and open your ports for you. Note
+that this is not the same as unblocking a port with <a href="ufw.html">ufw</a>,
+which still needs to be done for SMTP to work.</p>
+<pre><code>ufw allow 25,587 proto tcp
+</code></pre>
+<h2 id="installation">Installation</h2>
+<p>First, we install Postfix and also <code>mailutils</code>, which comes with some
+mail programs we will use.</p>
+<pre><code>apt install -y mailutils postfix
+</code></pre>
+<p>Installing Postfix for the first time will give us some graphical
+options.</p>
+
+<figure ><a href="/pix/smtp-01.png"><img src="/pix/smtp-01.png" alt="SMTP Postfix internet site choice"></a></figure>
+
+<p>When asked for a &quot;mail name&quot;, give your full domain name from which
+you would like mail to come and go, e.g. <strong>example.org</strong> or
+<strong>landchad.net</strong></p>
+
+<figure ><a href="/pix/smtp-02.png"><img src="/pix/smtp-02.png" alt="SMTP Postfix fully qualified domain name"></a></figure>
+
+<h2 id="test-the-email">Test the email</h2>
+<p>That is actually all you need to have set up to have a barebones,
+send-only email server. We can test our server by running a <code>mail</code>
+command like that below.</p>
+<pre><code>echo &quot;Hi there.
+
+This is the text.&quot; | mail -s &quot;Email from the server&quot; your@emailaddress.com
+</code></pre>
+<p>This type of command is sufficient enough for your server to send mail.
+Note that we use the <code>-s</code> option to specify the email's subject while
+we pipe the email content into the <code>mail</code> command via standard input. In
+this example I use a quoted multiline email as an example.</p>
+<h2 id="do-you-see-your-message">Do you see your message?</h2>
+<p>If you sent the above test message to an account on Gmail or another
+major email provider, there is <strong>very high</strong> chance of the message you
+sent above being marked as spam or not appearing at all!</p>
+<p>Don't worry, we'll take care of that in the next two articles where we
+set up rDNS with your VPS provider and various other DNS
+records to validate the emails you send.</p>
+</article>
+<a class=next href="/mail/rdns/">Next: Informatics</a>
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>

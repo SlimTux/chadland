@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Image Compression | LandChad.net</title>
+	<link rel="canonical" href="https://landchad.net">
+	<link rel='alternate' type='application/rss+xml' title="LandChad.net RSS" href='/index.xml'>
+	<link rel='stylesheet' type='text/css' href='/style.css'>
+	<link rel="icon" href="/favicon.ico">
+	<meta name="description" content="Image files will usually have the most impact on the speed of your websites (aside from Ad/tracker scripts). Learn to slim down your images using the ubiquitous ImageMagick to make your websites faster on slow internet connections.
+For the examples, I decided to use this public domain image.
+There are many ways to decrease image size using ImageMagick, the simplest is to use the -quality option, which will compress the image without changing the resolution.">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="robots" content="index, follow">
+	<meta charset="utf-8">
+</head>
+<body>
+<main>
+<header><h1>Image compression</h1></header>
+<article>
+<p>Image files will usually have the most impact on the speed of your
+websites (aside from Ad/tracker scripts). Learn to slim down your images
+using the ubiquitous <em>ImageMagick</em> to make your websites faster on slow
+internet connections.</p>
+
+<figure ><a href="/pix/imgcompress-network.png"><img src="/pix/imgcompress-network.png" alt="Image network speed"></a></figure>
+
+<p>For the examples, I decided to use
+<a href="https://commons.wikimedia.org/wiki/File:Tabby_cat_with_blue_eyes-3336579.jpg">this</a>
+public domain image.</p>
+
+<figure ><a href="/pix/imgcompress-cat.png"><img src="/pix/imgcompress-cat.png" alt="Compressed image of a cat"></a></figure>
+
+<p>There are many ways to decrease image size using ImageMagick, the
+simplest is to use the <code>-quality</code> option, which will compress the image
+without changing the resolution. This option takes the value you want to
+compress by (between 1 and 100, the lower the value, the lower the file
+size). For example:</p>
+<pre><code>convert in.jpg -quality 50 out.jpg
+</code></pre>
+<p>Compressing the example image above results in the following file size
+changes:</p>
+<pre tabindex="0"><code>  Quality    Size
+  ---------- ------
+  Original   2.1M
+  90         1.7M
+  80         844K
+  70         588K
+  60         448K
+  50         368K
+  40         308K
+  30         248K
+  20         184K
+  10         116K
+</code></pre><p>Due to the images high resolution, it is usable in this website even
+when highly compressed (30% quality, still looks decent in my opinion).</p>
+<h2 id="contribution">Contribution</h2>
+<ul>
+<li><a href="https://na20a.neocities.org/">Musse</a></li>
+<li>Monero:
+<code>83is3y69Xv4fkFsTpZhw5c3bfxtimupfgTdpERHM1WtMNAwSqFjTCJm3VabyBKXKnL873dWPmqj4bRcgkm9oCktgQrzmhHd</code>{.crypto}</li>
+</ul>
+</article>
+
+</main>
+<footer>
+	<a href="https://landchad.net">https://landchad.net</a><br><br><a href="/index.xml"><img src="/rss.svg" style="max-height:1.5em" alt="RSS Feed" title="Subscribe via RSS for updates."></a>
+</footer>
+</body>
+</html>
