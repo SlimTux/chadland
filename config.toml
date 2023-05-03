@@ -1,4 +1,4 @@
-baseURL = 'https://landchad.net'
+baseURL = 'https://larbs.vercel.app/'
 languageCode = 'en-us'
 title = 'LandChad.net'
 theme = 'lugo'
