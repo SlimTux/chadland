@@ -3,7 +3,7 @@ title: 'MeinTest.net'
 layout: single
 ---
 
-This is LandChad.net, a site dedicated to turning internet peasants into Internet Landlords by showing them how to setup websites, email servers, chat servers and everything in between.
+This is my [blog](https://larbs.vercel.app), a site dedicated to turning internet peasants into Internet Landlords by showing them how to setup websites, email servers, chat servers and everything in between.
 
 Starting a website is something that can be done in a lazy afternoon and costs pocket change.
 
